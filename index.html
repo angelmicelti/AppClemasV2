@@ -427,9 +427,48 @@
         @media (max-width: 480px) {
             .sidebar { display: none; }
         }
+
+        /* Splash screen */
+        #splashScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #1d4ed8 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1.2s ease-out;
+        }
+        #splashScreen.fade-out {
+            opacity: 0;
+        }
+        #splashScreen .splash-title {
+            color: #ffffff;
+            font-size: clamp(1.5rem, 4vw, 2.8rem);
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 1px;
+            padding: 0 1rem;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        #splashScreen .splash-sub {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
+    <!-- Splash screen -->
+    <div id="splashScreen">
+        <div class="splash-title">MONTAJE DE CIRCUITOS CON CLEMAS</div>
+        <div class="splash-sub">@by angelmicelti</div>
+    </div>
+
     <header>
         <h1>MONTAJE DE CIRCUITOS CON CLEMAS</h1>
     </header>
@@ -500,7 +539,7 @@
     <!-- Initial dialog -->
     <div class="modal-overlay" id="initDialog">
         <div class="modal">
-            <h2>MONTAJE DE CIRCUITOS CON CLEMAS</h2>
+            <h2>CONFIGURA LAS CLEMAS</h2>
             <label for="numClemas">Número de clemas (N):</label>
             <input type="number" id="numClemas" min="1" max="50" value="5">
             <label for="baseUnit">Base del rectángulo (b píxeles):</label>
@@ -859,6 +898,31 @@ const __PNG_CACHE__ = {
     }
 
     // ============================================================
+    // SPLASH SCREEN
+    // ============================================================
+    (function() {
+        const splash = document.getElementById('splashScreen');
+        if (!splash) return;
+        let dismissed = false;
+
+        function dismissSplash() {
+            if (dismissed) return;
+            dismissed = true;
+            clearTimeout(window._splashTimer);
+            splash.classList.add('fade-out');
+            setTimeout(function() {
+                splash.style.display = 'none';
+            }, 1200);
+        }
+
+        // Auto-dismiss after 5 seconds
+        window._splashTimer = setTimeout(dismissSplash, 5000);
+
+        // Dismiss on click anywhere
+        splash.addEventListener('click', dismissSplash);
+    })();
+
+    // ============================================================
     // SIDEBAR
     // ============================================================
     function initSidebar() {
@@ -1099,6 +1163,8 @@ const __PNG_CACHE__ = {
     }
 
     function isAnyModalOpen() {
+        // Also check if project name input has focus (to prevent shortcut interference)
+        if (document.activeElement && document.activeElement.id === 'projectName') return true;
         return !document.getElementById('githubSaveDialog').classList.contains('hidden') ||
                !document.getElementById('githubLoadDialog').classList.contains('hidden') ||
                !document.getElementById('addTextDialog').classList.contains('hidden') ||
@@ -1303,7 +1369,7 @@ const __PNG_CACHE__ = {
                 centerView();
             }
             // 'a' key: align selected objects horizontally to the average Y
-            if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey) {
+            if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey && !isAnyModalOpen()) {
                 const compIndices = new Set();
                 APP.selectedWireIndices.forEach(idx => {
                     if (idx < 0) compIndices.add(-idx - 1);
@@ -1346,47 +1412,71 @@ const __PNG_CACHE__ = {
                 const tag = document.activeElement.tagName;
                 if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-                // Delete selected components
-                if (APP.selectedComponent !== null) {
-                    if (confirm(`¿Eliminar este componente (${APP.components[APP.selectedComponent].type})?`)) {
-                        const ci = APP.selectedComponent;
-                        saveUndoState();
-                        APP.wires = APP.wires.filter(w =>
-                            !w.start.id.startsWith(`comp_${ci}_`) && !w.end.id.startsWith(`comp_${ci}_`)
-                        );
-                        APP.components.splice(ci, 1);
-                        APP.selectedComponent = null;
-                        renderComponents();
-                        renderWires();
-                        setStatus('Componente eliminado');
-                    }
-                }
-                // Delete selected wires
+                // Collect ALL selected items
+                const compIndices = new Set();
+                APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(-idx - 1); });
+                if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
+
                 const wireSet = APP.selectedWireIndices.size > 0
-                    ? new Set(APP.selectedWireIndices)
+                    ? new Set([...APP.selectedWireIndices].filter(i => i >= 0))
                     : (APP.selectedWire !== null ? new Set([APP.selectedWire]) : new Set());
-                if (wireSet.size > 0) {
-                    saveUndoState();
-                    const indices = [...wireSet].sort((a, b) => b - a);
-                    indices.forEach(i => APP.wires.splice(i, 1));
-                    APP.selectedWire = null;
-                    APP.selectedWireIndices.clear();
-                    renderWires();
-                    setStatus(`${indices.length} cable(s) eliminado(s)`);
-                }
-                // Delete selected texts
+
                 const textSet = APP.selectedTexts.size > 0
                     ? new Set(APP.selectedTexts)
                     : (APP.selectedText !== null ? new Set([APP.selectedText]) : new Set());
-                if (textSet.size > 0) {
-                    saveUndoState();
-                    const tindices = [...textSet].sort((a, b) => b - a);
-                    tindices.forEach(i => APP.texts.splice(i, 1));
-                    APP.selectedText = null;
-                    APP.selectedTexts.clear();
-                    renderTexts();
-                    setStatus(`${tindices.length} texto(s) eliminado(s)`);
+
+                const totalSelected = compIndices.size + wireSet.size + textSet.size;
+
+                if (totalSelected === 0) return;
+
+                // Confirmation message
+                let confirmMsg = '';
+                if (totalSelected === 1) {
+                    if (compIndices.size === 1) {
+                        const ci = [...compIndices][0];
+                        confirmMsg = `¿Eliminar este componente (${APP.components[ci].type})?`;
+                    } else if (wireSet.size === 1) {
+                        confirmMsg = '¿Eliminar este cable?';
+                    } else if (textSet.size === 1) {
+                        confirmMsg = '¿Eliminar este texto?';
+                    }
+                } else {
+                    const parts = [];
+                    if (compIndices.size > 0) parts.push(`${compIndices.size} componente(s)`);
+                    if (wireSet.size > 0) parts.push(`${wireSet.size} cable(s)`);
+                    if (textSet.size > 0) parts.push(`${textSet.size} texto(s)`);
+                    confirmMsg = `¿Eliminar ${parts.join(', ')} seleccionado(s)?`;
                 }
+
+                if (!confirm(confirmMsg)) return;
+
+                saveUndoState();
+
+                // Delete components (in reverse order)
+                [...compIndices].sort((a, b) => b - a).forEach(ci => {
+                    APP.wires = APP.wires.filter(w =>
+                        !w.start.id.startsWith(`comp_${ci}_`) && !w.end.id.startsWith(`comp_${ci}_`)
+                    );
+                    APP.components.splice(ci, 1);
+                });
+
+                // Delete wires
+                [...wireSet].sort((a, b) => b - a).forEach(i => APP.wires.splice(i, 1));
+
+                // Delete texts
+                [...textSet].sort((a, b) => b - a).forEach(i => APP.texts.splice(i, 1));
+
+                // Clear selections
+                APP.selectedComponent = null;
+                APP.selectedWire = null;
+                APP.selectedWireIndices.clear();
+                APP.selectedText = null;
+                APP.selectedTexts.clear();
+
+                renderComponents();
+                renderWires();
+                renderTexts();
+                setStatus(`${totalSelected} elemento(s) eliminado(s)`);
             }
             // '0'-'9' keys: change selected wire color (IEC standard color code)
             const wireColorMap = {
@@ -2338,6 +2428,10 @@ const __PNG_CACHE__ = {
         const comp = APP.components[index];
         if (!comp) return;
 
+        // Store old values for undo
+        const oldVal = comp.value;
+        const oldUnit = comp.unit;
+
         if (comp.type === 'resistor') {
             const currentVal = comp.value || '';
             const currentUnit = comp.unit || 'ohm';
@@ -2370,8 +2464,69 @@ const __PNG_CACHE__ = {
             const newVal = prompt(`Etiqueta para ${comp.type}:`, comp.value || '');
             if (newVal !== null) comp.value = newVal.trim();
         }
+        saveUndoState();
         renderComponents();
         setStatus(`Componente ${comp.type} actualizado.`);
+    }
+
+    // Helper: count all selected items across all types
+    function countAllSelectedItems() {
+        const compIndices = new Set();
+        APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(-idx - 1); });
+        if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
+        const wireCount = APP.selectedWireIndices.size > 0
+            ? [...APP.selectedWireIndices].filter(i => i >= 0).length
+            : (APP.selectedWire !== null ? 1 : 0);
+        const textCount = APP.selectedTexts.size > 0 ? APP.selectedTexts.size : (APP.selectedText !== null ? 1 : 0);
+        return compIndices.size + wireCount + textCount;
+    }
+
+    // Helper: delete all selected items (components, wires, texts)
+    function deleteSelectedItems() {
+        // Collect component indices
+        const compIndices = new Set();
+        APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(-idx - 1); });
+        if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
+
+        // Collect wire indices (only positive)
+        const wireIndices = APP.selectedWireIndices.size > 0
+            ? [...APP.selectedWireIndices].filter(i => i >= 0)
+            : (APP.selectedWire !== null ? [APP.selectedWire] : []);
+
+        // Collect text indices
+        const textIndices = APP.selectedTexts.size > 0
+            ? [...APP.selectedTexts]
+            : (APP.selectedText !== null ? [APP.selectedText] : []);
+
+        // Delete components (reverse order) and their connected wires
+        [...compIndices].sort((a, b) => b - a).forEach(ci => {
+            APP.wires = APP.wires.filter(w =>
+                !w.start.id.startsWith(`comp_${ci}_`) && !w.end.id.startsWith(`comp_${ci}_`)
+            );
+            APP.components.splice(ci, 1);
+        });
+
+        // Delete wires (reverse order)
+        [...wireIndices].sort((a, b) => b - a).forEach(i => {
+            if (i < APP.wires.length) APP.wires.splice(i, 1);
+        });
+
+        // Delete texts (reverse order)
+        [...textIndices].sort((a, b) => b - a).forEach(i => {
+            if (i < APP.texts.length) APP.texts.splice(i, 1);
+        });
+
+        // Clear all selections
+        APP.selectedComponent = null;
+        APP.selectedWire = null;
+        APP.selectedWireIndices.clear();
+        APP.selectedText = null;
+        APP.selectedTexts.clear();
+
+        renderComponents();
+        renderWires();
+        renderTexts();
+        setStatus(`${compIndices.size + wireIndices.length + textIndices.length} elemento(s) eliminado(s)`);
     }
 
     function onContextMenu(e) {
@@ -2504,17 +2659,27 @@ const __PNG_CACHE__ = {
 
             document.getElementById('compCtxDel').addEventListener('click', () => {
                 dismissMenu();
-                if (confirm(`¿Eliminar este componente (${comp.type})?`)) {
-                    saveUndoState();
-                    APP.wires = APP.wires.filter(w =>
-                        !w.start.id.startsWith(`comp_${ci}_`) && !w.end.id.startsWith(`comp_${ci}_`)
-                    );
-                    APP.components.splice(ci, 1);
-                    if (APP.selectedComponent === ci) APP.selectedComponent = null;
-                    else if (APP.selectedComponent > ci) APP.selectedComponent--;
-                    renderComponents();
-                    renderWires();
-                    setStatus('Componente eliminado');
+                // If there are multiple items selected, delete all of them
+                const totalSelected = countAllSelectedItems();
+                if (totalSelected > 1) {
+                    if (confirm(`¿Eliminar ${totalSelected} elemento(s) seleccionado(s)?`)) {
+                        saveUndoState();
+                        deleteSelectedItems();
+                    }
+                } else {
+                    // Just delete this single component
+                    if (confirm(`¿Eliminar este componente (${comp.type})?`)) {
+                        saveUndoState();
+                        APP.wires = APP.wires.filter(w =>
+                            !w.start.id.startsWith(`comp_${ci}_`) && !w.end.id.startsWith(`comp_${ci}_`)
+                        );
+                        APP.components.splice(ci, 1);
+                        if (APP.selectedComponent === ci) APP.selectedComponent = null;
+                        else if (APP.selectedComponent > ci) APP.selectedComponent--;
+                        renderComponents();
+                        renderWires();
+                        setStatus('Componente eliminado');
+                    }
                 }
             });
             return;
@@ -2541,25 +2706,50 @@ const __PNG_CACHE__ = {
             e.preventDefault();
             const pathEl = t.closest ? t.closest('.wire-path, .wire-path-hit-area') : null;
             const wi = pathEl ? +pathEl.dataset.wireIndex : -1;
-            // If nothing selected, select just this one
-            if (APP.selectedWireIndices.size === 0) {
+
+            // Count ALL selected items
+            const compIndices = new Set();
+            APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(-idx - 1); });
+            if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
+            const wireCount = APP.selectedWireIndices.size > 0
+                ? [...APP.selectedWireIndices].filter(i => i >= 0).length
+                : (APP.selectedWire !== null ? 1 : 0);
+            const textCount = APP.selectedTexts.size > 0 ? APP.selectedTexts.size : (APP.selectedText !== null ? 1 : 0);
+            const totalSelected = compIndices.size + wireCount + textCount;
+
+            if (totalSelected > 0) {
+                // Multiple items selected — show unified delete confirmation
+                const parts = [];
+                if (compIndices.size > 0) parts.push(`${compIndices.size} componente(s)`);
+                if (wireCount > 0) parts.push(`${wireCount} cable(s)`);
+                if (textCount > 0) parts.push(`${textCount} texto(s)`);
+                const confirmMsg = `¿Eliminar ${parts.join(', ')} seleccionado(s)?`;
+                if (confirm(confirmMsg)) {
+                    saveUndoState();
+                    deleteSelectedItems();
+                }
+            } else {
+                // Nothing selected — delete just the clicked wire
                 if (confirm('¿Eliminar este cable?')) {
                     saveUndoState();
-                    APP.wires.splice(wi, 1);
+                    if (wi >= 0) APP.wires.splice(wi, 1);
                     APP.selectedWire = null;
                     renderWires();
                     setStatus('Cable eliminado');
                 }
-            } else {
-                const count = APP.selectedWireIndices.size;
-                if (confirm(`¿Eliminar ${count} cable(s) seleccionado(s)?`)) {
+            }
+            return;
+        }
+
+        // Right-click on empty space or other area → delete all selected items
+        if (!t.closest('.component-group') && !t.closest('.comp-context-menu') &&
+            !t.classList.contains('text-element') && !t.closest('.text-box')) {
+            const totalSelected = countAllSelectedItems();
+            if (totalSelected > 0) {
+                e.preventDefault();
+                if (confirm(`¿Eliminar ${totalSelected} elemento(s) seleccionado(s)?`)) {
                     saveUndoState();
-                    const indices = [...APP.selectedWireIndices].sort((a, b) => b - a);
-                    indices.forEach(i => APP.wires.splice(i, 1));
-                    APP.selectedWireIndices.clear();
-                    APP.selectedWire = null;
-                    renderWires();
-                    setStatus(`${count} cable(s) eliminados`);
+                    deleteSelectedItems();
                 }
             }
         }
@@ -3219,99 +3409,13 @@ const __PNG_CACHE__ = {
                 const startY = APP.dragging.startY;
                 const hasMoved = Math.abs(w.start.x - startX) > 2 || Math.abs(w.start.y - startY) > 2;
                 
-                // Only reposition if wire was actually dragged (not just clicked)
+                // Only adjust concavity if wire was actually dragged (not just clicked)
                 if (hasMoved) {
-                    const wireBounds = getWireBounds(w);
-
-                    const clemaRect = {
-                        minX: APP.margin,
-                        maxX: APP.margin + APP.N * APP.b,
-                        minY: APP.rectStartY,
-                        maxY: APP.rectStartY + APP.rectH
-                    };
-
-                    // Calculate clema center and dimensions
-                    const clemaCenterY = (clemaRect.minY + clemaRect.maxY) / 2;
-                    const clemaCenterX = (clemaRect.minX + clemaRect.maxX) / 2;
-
-                    // Calculate wire midpoint
-                    const wireMidX = (w.start.x + w.end.x) / 2;
+                    // Adjust concavity: make the curve bulge toward the clema based on wire position
+                    const clemaCenterY = APP.rectStartY + APP.rectH / 2;
                     const wireMidY = (w.start.y + w.end.y) / 2;
 
-                    // Determine where to reposition based on release position
-                    const SNAP_DISTANCE = 30; // Minimum distance from clema edge
-                    const wireWidth = wireBounds.maxX - wireBounds.minX;
-                    const wireHeight = wireBounds.maxY - wireBounds.minY;
-
-                    let offsetX = 0, offsetY = 0;
-                    let needsReposition = false;
-
-                    // Check if wire is horizontally centered over clema area
-                    const wireOverClemaHorizontally = wireMidX >= clemaRect.minX && wireMidX <= clemaRect.maxX;
-                    // Check if wire is vertically centered over clema area
-                    const wireOverClemaVertically = wireMidY >= clemaRect.minY && wireMidY <= clemaRect.maxY;
-
-                    // Check if wire overlaps with clema
-                    const overlapsClema = !(wireBounds.maxX < clemaRect.minX ||
-                                           wireBounds.minX > clemaRect.maxX ||
-                                           wireBounds.maxY < clemaRect.minY ||
-                                           wireBounds.minY > clemaRect.maxY);
-
-                    if (overlapsClema || wireOverClemaHorizontally) {
-                        // Wire is over clema area - reposition above or below
-                        if (wireMidY < clemaCenterY) {
-                            // Wire is above clema center - move it above clema
-                            offsetY = clemaRect.minY - SNAP_DISTANCE - wireBounds.maxY;
-                        } else {
-                            // Wire is below clema center - move it below clema
-                            offsetY = clemaRect.maxY + SNAP_DISTANCE - wireBounds.minY;
-                        }
-                        needsReposition = Math.abs(offsetY) > 5;
-                    } else if (wireMidX < clemaRect.minX || wireMidX > clemaRect.maxX) {
-                        // Wire is to the left or right of clema - place it above or below based on Y
-                        // Also center it horizontally with clema
-                        if (wireMidY < clemaCenterY) {
-                            // Place above clema
-                            offsetY = clemaRect.minY - SNAP_DISTANCE - wireBounds.maxY;
-                        } else {
-                            // Place below clema
-                            offsetY = clemaRect.maxY + SNAP_DISTANCE - wireBounds.minY;
-                        }
-                        // Center horizontally with clema
-                        offsetX = clemaCenterX - wireMidX;
-                        needsReposition = Math.abs(offsetY) > 5 || Math.abs(offsetX) > 5;
-                    }
-
-                    if (needsReposition) {
-                        // Apply the offset to all wire points
-                        w.start.x += offsetX;
-                        w.start.y += offsetY;
-                        w.end.x += offsetX;
-                        w.end.y += offsetY;
-                        w.h1x += offsetX;
-                        w.h1y += offsetY;
-                        w.h2x += offsetX;
-                        w.h2y += offsetY;
-
-                        if (w.nodes && w.nodes.length > 0) {
-                            w.nodes.forEach(node => {
-                                node.x += offsetX;
-                                node.y += offsetY;
-                                node.h1x += offsetX;
-                                node.h1y += offsetY;
-                                node.h2x += offsetX;
-                                node.h2y += offsetY;
-                            });
-                        }
-
-                        setStatus('Cable reposicionado automáticamente cerca de la clema');
-                    }
-
-                    // ALWAYS adjust concavity based on wire position relative to clema
                     if (!w.isSine) {
-                        // Recalculate midpoint after repositioning
-                        const finalWireMidY = (w.start.y + w.end.y) / 2;
-
                         // Calculate current handle offsets from endpoints
                         const h1OffsetY = w.h1y - w.start.y;
                         const h2OffsetY = w.h2y - w.end.y;
@@ -3320,14 +3424,17 @@ const __PNG_CACHE__ = {
                         const h1Magnitude = Math.abs(h1OffsetY);
                         const h2Magnitude = Math.abs(h2OffsetY);
 
+                        // If handles are too flat (magnitude < 5), create a default bulge
+                        const minBulge = Math.max(h1Magnitude, h2Magnitude, 15);
+
                         // Determine direction: wire concavity should face the clema
-                        // If wire midpoint is above clema center → concavity faces down → bulge UP
-                        // If wire midpoint is below clema center → concavity faces up → bulge DOWN
-                        const shouldBulgeUp = finalWireMidY < clemaCenterY;
+                        // If wire midpoint is above clema center → bulge UP
+                        // If wire midpoint is below clema center → bulge DOWN
+                        const shouldBulgeUp = wireMidY < clemaCenterY;
 
                         // Apply correct direction
-                        const targetH1Y = w.start.y + (shouldBulgeUp ? -h1Magnitude : h1Magnitude);
-                        const targetH2Y = w.end.y + (shouldBulgeUp ? -h2Magnitude : h2Magnitude);
+                        const targetH1Y = w.start.y + (shouldBulgeUp ? -minBulge : minBulge);
+                        const targetH2Y = w.end.y + (shouldBulgeUp ? -minBulge : minBulge);
 
                         w.h1y = targetH1Y;
                         w.h2y = targetH2Y;
@@ -3775,6 +3882,7 @@ const __PNG_CACHE__ = {
     }
 
     function addComponent(type, x, y) {
+        saveUndoState();
         const comp = {
             id: Date.now(),
             type,
@@ -4462,8 +4570,8 @@ const __PNG_CACHE__ = {
         reader.onload = (ev) => {
             try {
                 const ext = file.name.split('.').pop().toLowerCase();
-                if (ext === 'json') { importJson(JSON.parse(ev.target.result)); }
-                else if (ext === 'svg') { importSvg(ev.target.result); }
+                if (ext === 'json') { importJson(JSON.parse(ev.target.result), file.name); }
+                else if (ext === 'svg') { importSvg(ev.target.result, file.name); }
                 else { alert('Formato no soportado'); }
             } catch (err) { alert('Error: ' + err.message); }
         };
@@ -4471,7 +4579,7 @@ const __PNG_CACHE__ = {
         e.target.value = '';
     }
 
-    function importJson(data) {
+    function importJson(data, fallbackName) {
         if (!data.N || !data.b) { alert('JSON inválido'); return; }
         saveUndoState();
         APP.N = data.N; APP.b = data.b;
@@ -4481,22 +4589,29 @@ const __PNG_CACHE__ = {
         APP.texts = data.texts || [];
         APP.components = data.components || [];
         APP._clemaLineAngles = null; // Reset angles for new loaded circuit
-        if (data.projectName) {
-            APP.projectName = data.projectName;
-            document.getElementById('projectName').value = data.projectName;
+        
+        // Update project name from data or fallback to filename
+        let name = data.projectName;
+        if (!name && fallbackName) {
+            name = fallbackName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_ -]/g, '').trim();
         }
+        if (name) {
+            APP.projectName = name;
+            document.getElementById('projectName').value = name;
+        }
+        
         APP.selectedWire = null; APP.selectedWireIndices.clear(); APP.selectedText = null; APP.selectedTexts.clear();
         APP.selectedComponent = null;
         initSvg(); renderClemas(); renderConnectionPoints(); renderComponents(); renderWires(); renderTexts();
         setStatus(`Importado: ${APP.wires.length} cables, ${APP.texts.length} textos, ${APP.components.length} componentes`);
     }
 
-    function importSvg(svgText) {
+    function importSvg(svgText, fallbackName) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(svgText, 'image/svg+xml');
         const meta = doc.querySelector('metadata');
         if (meta && meta.textContent) {
-            try { importJson(JSON.parse(meta.textContent)); return; } catch (e) {}
+            try { importJson(JSON.parse(meta.textContent), fallbackName); return; } catch (e) {}
         }
         const paths = doc.querySelectorAll('.wire-path, .wires-group path');
         if (!paths.length) { alert('SVG sin datos válidos'); return; }
@@ -4553,6 +4668,11 @@ const __PNG_CACHE__ = {
         document.getElementById('btnGhSaveAsNew').style.display = 'none';
         document.getElementById('ghSaveFileList').style.display = 'none';
         document.getElementById('btnGhSaveConfirm').textContent = 'Guardar';
+
+        // Auto-fill project name as default filename
+        const projName = (APP.projectName || 'Mi Circuito').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_ -]/g, '').trim() || 'clemas_design';
+        document.getElementById('ghFilename').value = projName + '.json';
+        document.getElementById('ghDescription').value = `ClemasV2 - ${APP.projectName || 'Mi Circuito'}`;
 
         // Auto-fill token if already loaded
         const loadToken = document.getElementById('ghLoadToken').value;
@@ -4612,8 +4732,8 @@ const __PNG_CACHE__ = {
 
     async function saveToGithub(asNew) {
         const token = document.getElementById('ghToken').value.trim();
-        const filename = document.getElementById('ghFilename').value.trim() || 'clemas_design.json';
-        const desc = document.getElementById('ghDescription').value.trim() || 'Clemas Design';
+        const filename = document.getElementById('ghFilename').value.trim() || ((APP.projectName || 'Mi Circuito').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_ -]/g, '').trim() || 'clemas_design') + '.json';
+        const desc = document.getElementById('ghDescription').value.trim() || `ClemasV2 - ${APP.projectName || 'Mi Circuito'}`;
         if (!token) { alert('Introduzca su token de GitHub'); return; }
 
         const data = {
@@ -4811,7 +4931,7 @@ const __PNG_CACHE__ = {
                                 content = await fr.text();
                             }
                             if (content) {
-                                importJson(JSON.parse(content));
+                                importJson(JSON.parse(content), jsonFile.filename);
                                 document.getElementById('githubLoadDialog').classList.add('hidden');
                             } else { alert('Sin contenido JSON válido'); }
                         } else { alert('No se encontró un archivo Clemas válido en este gist'); }
