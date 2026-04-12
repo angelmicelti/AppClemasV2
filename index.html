@@ -33,8 +33,13 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* Touch device optimizations */
         body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             touch-action: manipulation;
@@ -43,15 +48,6 @@
         #mainSvg {
             touch-action: none;
             -webkit-touch-callout: none;
-        }
-
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--gray-100);
-            color: var(--gray-800);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
 
         header {
@@ -139,7 +135,7 @@
         .btn-info { background: #0891b2; color: white; }
         .btn-info:hover:not(:disabled) { background: #0e7490; }
 
-        .sidebar-close-btn { display: none; position: absolute; top: 0.5rem; right: 0.5rem; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--gray-600); padding: 0.5rem; min-width: 44px; min-height: 44px; }
+        .sidebar-close-btn { position: absolute; top: 0.5rem; right: 0.5rem; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--gray-600); padding: 0.5rem; min-width: 44px; min-height: 44px; display: none; }
 
         /* Tools panel grid */
         .tools-panel-grid {
@@ -481,13 +477,16 @@
             .sidebar { width: 100%; min-width: 100%; max-width: 100%; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900; transform: translateX(-100%); transition: transform 0.3s ease; padding: 1rem; overflow-y: auto; background: white; box-shadow: var(--shadow-lg); }
             .sidebar.open { transform: translateX(0); }
             .sidebar-close-btn { display: block; }
-            .sidebar.open .sidebar-close-btn { display: block; }
             #sidebarToggle { display: inline-flex !important; }
-            .top-bar { flex-wrap: wrap; gap: 0.5rem; }
+            .top-bar { flex-wrap: wrap; gap: 0.5rem; padding: 0.4rem 0.6rem; }
             .top-bar input[type="text"] { width: 100%; max-width: none; }
-            .top-bar-actions { width: 100%; justify-content: space-between; }
+            .top-bar-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 0.25rem; }
+            .toolbar-group { flex-wrap: nowrap; }
             .modal { max-width: 95vw; margin: 0.5rem; max-height: 90vh; }
             .splash-sub { right: 1rem !important; bottom: 1rem !important; font-size: 0.7rem !important; }
+            /* Make connection points slightly visible on touch so users know where to tap */
+            .connection-point { opacity: 0.2; r: 9; }
+            .component-terminal { opacity: 0.2; r: 9; }
         }
 
         @media (max-width: 480px) {
@@ -829,7 +828,6 @@
         drawingStartType: null, // 'clema' or 'canvas'
         textMode: false,
         dragging: null,
-        dragStartHandle: null, // for two-handle editing
         draggingLabel: null, // for component label dragging
         draggingLabelCompIndex: null,
         selectionBox: null, // for marquee selection
@@ -1040,7 +1038,6 @@ const __PNG_CACHE__ = {
             swatch.dataset.color = color;
             swatch.addEventListener('click', () => {
                 document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
-                sidebarPalette.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
                 swatch.classList.add('active');
                 APP.selectedColor = color;
                 const wireSet = getSelectedWireSet();
@@ -1187,6 +1184,20 @@ const __PNG_CACHE__ = {
         // Clear buttons (now they exist)
         document.getElementById('btnClear').addEventListener('click', clearWires);
         document.getElementById('btnClearTexts').addEventListener('click', clearTexts);
+
+        // Center view button (helpful on mobile without keyboard shortcut H)
+        const navSection = document.createElement('div');
+        navSection.className = 'sidebar-section';
+        navSection.innerHTML = `
+            <div class="sidebar-section-title">Navegación</div>
+            <button class="btn-secondary" id="btnCenterView" style="width:100%;font-size:0.85rem;min-height:44px;">🎯 Centrar vista (H)</button>
+        `;
+        sidebar.appendChild(navSection);
+        document.getElementById('btnCenterView').addEventListener('click', () => {
+            if (!APP.svg) return;
+            centerView();
+            if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+        });
 
         // Component library section (collapsible accordion)
         const compSection = document.createElement('div');
@@ -2297,6 +2308,9 @@ const __PNG_CACHE__ = {
                 svg.classList.remove('panning-available');
             }
         });
+
+        // Set up touch interactions for mobile/tablet
+        setupTouchEvents();
     }
 
     function onWheelZoom(e) {
@@ -3696,20 +3710,36 @@ const __PNG_CACHE__ = {
         }
     }
 
-    // Touch
     // ============================================================
-    // ENHANCED TOUCH HANDLERS
+    // TOUCH HANDLERS (called from setupSvgEvents after APP.svg is ready)
     // ============================================================
-    (function() {
+    function setupTouchEvents() {
+        const svg = APP.svg;
         let lastTapTime = 0;
         let lastTapTarget = null;
         let longPressTimer = null;
         let longPressFired = false;
         let pinchStartDist = 0;
         let pinchStartScale = 1;
+        let touchStartPos = null;   // tracks start position for tap-vs-drag detection
+        let touchPanStart = null;   // tracks pan start (single-finger pan on empty space)
 
-        function getTouchPos(touch) {
-            return { clientX: touch.clientX, clientY: touch.clientY };
+        // Returns true if el is something interactive (wire, connection point, component...)
+        function isInteractiveEl(el) {
+            if (!el) return false;
+            return el.classList.contains('connection-point') ||
+                   el.classList.contains('component-terminal') ||
+                   el.classList.contains('wire-path') ||
+                   el.classList.contains('wire-path-hit-area') ||
+                   el.classList.contains('wire-control-handle') ||
+                   el.classList.contains('wire-anchor-point') ||
+                   el.classList.contains('wire-node-point') ||
+                   el.classList.contains('text-element') ||
+                   el.classList.contains('component-hit-area') ||
+                   !!el.closest('.component-group') ||
+                   !!el.closest('.text-box') ||
+                   !!el.closest('.clema-control-btn') ||
+                   !!el.closest('.component-label-group');
         }
 
         function getTouchDistance(t1, t2) {
@@ -3717,117 +3747,148 @@ const __PNG_CACHE__ = {
         }
 
         function handleDoubleTap(touch) {
-            // Dispatch dblclick event for wire node insertion
-            const mouseEvent = new MouseEvent('dblclick', {
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-                button: 0,
-                bubbles: true
-            });
-            APP.svg.dispatchEvent(mouseEvent);
+            svg.dispatchEvent(new MouseEvent('dblclick', {
+                clientX: touch.clientX, clientY: touch.clientY, button: 0, bubbles: true
+            }));
         }
 
         function handleLongPress(touch) {
-            // Dispatch contextmenu event for component actions
-            const mouseEvent = new MouseEvent('contextmenu', {
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-                button: 2,
-                bubbles: true
-            });
-            APP.svg.dispatchEvent(mouseEvent);
+            // Dispatch contextmenu to the actual element under the touch point
+            const el = document.elementFromPoint(touch.clientX, touch.clientY) || svg;
+            el.dispatchEvent(new MouseEvent('contextmenu', {
+                clientX: touch.clientX, clientY: touch.clientY, button: 2, bubbles: true
+            }));
         }
 
         function handlePinchZoom(e) {
             if (e.touches.length !== 2) return;
             e.preventDefault();
-
-            const t1 = e.touches[0];
-            const t2 = e.touches[1];
+            const t1 = e.touches[0], t2 = e.touches[1];
             const currentDist = getTouchDistance(t1, t2);
-
             if (pinchStartDist === 0) {
                 pinchStartDist = currentDist;
                 pinchStartScale = APP._zoomScale || 1;
                 return;
             }
-
             const scale = currentDist / pinchStartDist;
             const newScale = Math.min(Math.max(pinchStartScale * scale, 0.3), 5);
             APP._zoomScale = newScale;
-
-            // Apply zoom via viewBox
-            const vb = APP.svg.viewBox.baseVal;
+            const vb = svg.viewBox.baseVal;
             const totalW = APP.N * APP.b;
             const totalH = APP.rectH + 2 * APP.margin + 400;
             const baseWidth = totalW + 2 * Math.max(APP.margin + Math.max(Math.min(APP.b * 0.22, 14) * 5, 40), 60);
             const newW = baseWidth / newScale;
             const newH = totalH / newScale;
-            APP.svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${newW} ${newH}`);
+            svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${newW} ${newH}`);
             APP.svgWidth = newW;
             APP.svgHeight = newH;
         }
 
-        APP.svg.addEventListener('touchstart', function(e) {
+        svg.addEventListener('touchstart', function(e) {
             // Pinch-to-zoom: two fingers
             if (e.touches.length === 2) {
                 pinchStartDist = 0;
+                touchPanStart = null;
                 handlePinchZoom(e);
                 return;
             }
 
             const touch = e.touches[0];
             const now = Date.now();
+            touchStartPos = { x: touch.clientX, y: touch.clientY };
 
             // Double-tap detection
             if (now - lastTapTime < 350 && lastTapTarget === touch.target) {
                 handleDoubleTap(touch);
                 lastTapTime = 0;
+                touchStartPos = null;
                 return;
             }
             lastTapTime = now;
             lastTapTarget = touch.target;
 
-            // Long-press timer (500ms)
+            // Check if touch lands on an interactive element
+            const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+            const interactive = isInteractiveEl(elUnder);
+
+            if (!interactive && !APP.isDrawing) {
+                // Empty space: start single-finger pan (mobile navigation)
+                const vb = svg.viewBox.baseVal;
+                touchPanStart = { x: touch.clientX, y: touch.clientY, vbX: vb.x, vbY: vb.y };
+                e.preventDefault();
+                return;
+            }
+
+            touchPanStart = null;
             longPressFired = false;
             longPressTimer = setTimeout(() => {
                 longPressFired = true;
                 handleLongPress(touch);
             }, 500);
 
-            // Dispatch mousedown
-            dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mousedown');
+            dispatchMouse(svg, touch.clientX, touch.clientY, 'mousedown');
         }, { passive: false });
 
-        APP.svg.addEventListener('touchmove', function(e) {
+        svg.addEventListener('touchmove', function(e) {
             // Pinch-to-zoom
             if (e.touches.length === 2) {
                 clearTimeout(longPressTimer);
+                touchPanStart = null;
                 handlePinchZoom(e);
                 return;
             }
-
-            // Cancel long-press on move
             clearTimeout(longPressTimer);
 
             const touch = e.touches[0];
-            dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mousemove');
+
+            // Single-finger pan on empty space
+            if (touchPanStart) {
+                e.preventDefault();
+                const dx = touch.clientX - touchPanStart.x;
+                const dy = touch.clientY - touchPanStart.y;
+                const vb = svg.viewBox.baseVal;
+                const scaleX = vb.width / Math.max(svg.clientWidth, 1);
+                const scaleY = vb.height / Math.max(svg.clientHeight, 1);
+                svg.setAttribute('viewBox',
+                    `${touchPanStart.vbX - dx * scaleX} ${touchPanStart.vbY - dy * scaleY} ${vb.width} ${vb.height}`
+                );
+                return;
+            }
+
+            dispatchMouse(svg, touch.clientX, touch.clientY, 'mousemove');
         }, { passive: false });
 
-        APP.svg.addEventListener('touchend', function(e) {
-            // Clear long-press timer
+        svg.addEventListener('touchend', function(e) {
             clearTimeout(longPressTimer);
+            touchPanStart = null;
 
             if (e.touches.length === 0 && !longPressFired) {
                 const touch = e.changedTouches[0];
-                dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mouseup');
+                // Determine if this was a tap (minimal movement) or a drag
+                const moved = touchStartPos && Math.hypot(
+                    touch.clientX - touchStartPos.x,
+                    touch.clientY - touchStartPos.y
+                ) > 10;
+                dispatchMouse(svg, touch.clientX, touch.clientY, 'mouseup');
+                // For taps, also dispatch click so onClick() handles connection points,
+                // wire selection, canvas interactions, etc.
+                if (!moved) {
+                    dispatchMouse(svg, touch.clientX, touch.clientY, 'click');
+                }
             }
+            touchStartPos = null;
         }, { passive: false });
-    })();
+    }
 
-    // Keep old dispatch function for compatibility
+    // Dispatch a mouse event to the actual element at (cx, cy) so that
+    // event handlers checking e.target work correctly on both desktop and mobile.
     function dispatchMouse(svg, cx, cy, type) {
-        svg.dispatchEvent(new MouseEvent(type, { clientX: cx, clientY: cy, button: 0 }));
+        const target = type !== 'mousemove'
+            ? (document.elementFromPoint(cx, cy) || svg)
+            : svg;
+        target.dispatchEvent(new MouseEvent(type, {
+            clientX: cx, clientY: cy, button: 0, bubbles: true, cancelable: true
+        }));
     }
 
     // ============================================================
@@ -3850,13 +3911,8 @@ const __PNG_CACHE__ = {
             const nodes = w.nodes || [];
 
             if (nodes.length === 0) {
-                if (w.isSine) {
-                    // Sine curve: cubic bezier with independent handles
-                    d = `M ${w.start.x} ${w.start.y} C ${w.h1x} ${w.h1y}, ${w.h2x} ${w.h2y}, ${w.end.x} ${w.end.y}`;
-                } else {
-                    // Regular arc: cubic bezier with two handles
-                    d = `M ${w.start.x} ${w.start.y} C ${w.h1x} ${w.h1y}, ${w.h2x} ${w.h2y}, ${w.end.x} ${w.end.y}`;
-                }
+                // Cubic bezier with two handles (same formula for sine and arc wires)
+                d = `M ${w.start.x} ${w.start.y} C ${w.h1x} ${w.h1y}, ${w.h2x} ${w.h2y}, ${w.end.x} ${w.end.y}`;
             } else {
                 // Multi-segment with nodes
                 d = `M ${w.start.x} ${w.start.y}`;
