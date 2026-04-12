@@ -773,13 +773,14 @@
                     <li><b>↩ Deshacer / Rehacer ↪:</b> Deshace o rehace la última acción.</li>
                     <li><b>☰ Archivo:</b> Exportar (JSON, SVG, PNG, JPG), guardar/cargar local, importar y GitHub.</li>
                     <li><b>❓ Ayuda:</b> Muestra esta ventana.</li>
+                    <li><b>✋ Desplazar:</b> Activa/desactiva el modo de desplazamiento del canvas (especialmente útil en móviles/tablets).</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🧱 Clema</h3>
                 <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
                     <li>Las <b>clemas</b> son bloques rectangulares con puntos de conexión arriba y abajo.</li>
                     <li><b>Botones + / −</b> en cada extremo de la clema para añadir o quitar bloques.</li>
-                    <li>Cada punto de conexión muestra un indicador azul al pasar el ratón.</li>
+                    <li>Los <b>puntos de conexión</b> son visibles y accesibles en dispositivos táctiles (puntos azules).</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🔌 Cables</h3>
@@ -831,7 +832,7 @@
                     <li>Los textos se pueden <b>arrastrar</b> y seleccionar.</li>
                 </ul>
 
-                <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🖱️ Navegación</h3>
+                <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🖱️ Navegación (Ratón)</h3>
                 <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
                     <li><b>Shift+clic + arrastrar</b> en espacio vacío: desplaza el lienzo (pan).</li>
                     <li><b>Rueda del ratón:</b> Zoom.</li>
@@ -841,13 +842,19 @@
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">📱 Dispositivos táctiles (móvil y tablet)</h3>
                 <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
-                    <li><b>Toque simple:</b> Equivale a un clic — seleccionar, arrastrar cables y componentes.</li>
-                    <li><b>Doble toque:</b> Toca dos veces rápidamente sobre un cable para añadir un nodo.</li>
-                    <li><b>Pulsación larga:</b> Mantén pulsado sobre un componente (~0.5s) para abrir el menú contextual (Editar, Invertir, Duplicar, Alinear, Eliminar).</li>
+                    <li><b>Toque simple:</b> Equivale a un clic — seleccionar elementos, iniciar/finalizar cables, y activar acciones.</li>
+                    <li><b>Arrastrar con 1 dedo:</b> Mueve cables, componentes y textos por el lienzo.</li>
+                    <li><b>Doble toque:</b> Toca dos veces rápidamente sobre un cable para añadir un nodo de edición.</li>
+                    <li><b>Pulsación larga (~0.5s):</b> Mantén pulsado sobre un componente para abrir el menú contextual (Editar, Invertir, Duplicar, Alinear, Eliminar).</li>
                     <li><b>Pellizco (2 dedos):</b> Acerca o aleja los dedos para hacer zoom in/out.</li>
-                    <li><b>Arrastre con 1 dedo:</b> Mueve cables, componentes y textos.</li>
+                    <li><b>Desplazar el canvas:</b> Toca y arrastra verticalmente en un <b>espacio vacío</b> del canvas para hacer scroll. También puedes usar el botón <b>✋ Desplazar</b> en la barra superior para activar el modo de paneo explícito (arrastra libremente el canvas en cualquier dirección).</li>
+                    <li><b>✋ Desplazar (botón):</b> Al activarlo, el botón cambia a <b>"✋ Desplazando..."</b> y cualquier toque/arrastre en el canvas lo desplazará. Tócalo de nuevo para desactivarlo y volver al modo normal.</li>
+                    <li><b>Puntos de conexión visibles:</b> Los puntos de conexión de las clemas son <b>siempre visibles</b> (puntos azules) y más grandes en dispositivos táctiles para facilitar la conexión.</li>
+                    <li><b>Terminales de componentes visibles:</b> Los terminales de los componentes también son visibles y más fáciles de tocar.</li>
+                    <li><b>Tiradores de cables más grandes:</b> Los puntos de control de los cables y nodos tienen un tamaño aumentado para facilitar su manipulación.</li>
                     <li><b>Menú lateral:</b> En pantallas pequeñas, el botón <b>☰ Menú</b> abre un panel deslizante con todas las herramientas. Se cierra automáticamente al colocar un componente o pulsando la <b>×</b>.</li>
                     <li>Los botones y selectores están dimensionados con un <b>mínimo de 44px</b> para facilitar la pulsación.</li>
+                    <li><b>Selección múltiple:</b> Toque sobre un elemento ya seleccionado para añadirlo/quitarlo de la selección (similar a Shift+clic en escritorio).</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🎨 Colores y grosor</h3>
