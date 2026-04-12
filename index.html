@@ -33,13 +33,8 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* Touch device optimizations */
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--gray-100);
-            color: var(--gray-800);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
             -webkit-tap-highlight-color: transparent;
             -webkit-touch-callout: none;
             touch-action: manipulation;
@@ -48,6 +43,15 @@
         #mainSvg {
             touch-action: none;
             -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         header {
@@ -135,7 +139,7 @@
         .btn-info { background: #0891b2; color: white; }
         .btn-info:hover:not(:disabled) { background: #0e7490; }
 
-        .sidebar-close-btn { position: absolute; top: 0.5rem; right: 0.5rem; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--gray-600); padding: 0.5rem; min-width: 44px; min-height: 44px; display: none; }
+        .sidebar-close-btn { display: none; position: absolute; top: 0.5rem; right: 0.5rem; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--gray-600); padding: 0.5rem; min-width: 44px; min-height: 44px; }
 
         /* Tools panel grid */
         .tools-panel-grid {
@@ -200,11 +204,21 @@
         .canvas-container {
             flex: 1;
             overflow: auto;
-            padding: 2rem;
+            -webkit-overflow-scrolling: touch;
+            padding: 1rem;
             display: flex;
             justify-content: center;
             align-items: flex-start;
             min-width: 0;
+            touch-action: pan-x pan-y;
+        }
+
+        @media (max-width: 768px) {
+            .canvas-container {
+                padding: 0.5rem;
+                overflow-x: auto;
+                overflow-y: auto;
+            }
         }
 
         /* Sidebar + canvas layout */
@@ -267,6 +281,9 @@
             box-shadow: var(--shadow-lg);
             max-width: 100%;
             cursor: default;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         #mainSvg.panning-active {
@@ -275,6 +292,46 @@
 
         #mainSvg.panning-available {
             cursor: grab;
+        }
+
+        @media (max-width: 768px) {
+            #mainSvg {
+                max-width: none;
+                min-width: 800px;
+            }
+        }
+
+        /* Make interactive elements larger on touch devices */
+        @media (max-width: 768px) {
+            .connection-point {
+                r: 10 !important;
+                opacity: 0.6 !important;
+            }
+            
+            .connection-point:hover {
+                r: 12 !important;
+                opacity: 1 !important;
+            }
+
+            .component-terminal {
+                r: 10 !important;
+                opacity: 0.6 !important;
+            }
+
+            .component-terminal:hover {
+                r: 12 !important;
+                opacity: 1 !important;
+            }
+
+            .wire-control-handle {
+                r: 8 !important;
+                stroke-width: 3 !important;
+            }
+
+            .node-handle {
+                r: 8 !important;
+                stroke-width: 3 !important;
+            }
         }
 
         .modal-overlay {
@@ -477,16 +534,13 @@
             .sidebar { width: 100%; min-width: 100%; max-width: 100%; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900; transform: translateX(-100%); transition: transform 0.3s ease; padding: 1rem; overflow-y: auto; background: white; box-shadow: var(--shadow-lg); }
             .sidebar.open { transform: translateX(0); }
             .sidebar-close-btn { display: block; }
+            .sidebar.open .sidebar-close-btn { display: block; }
             #sidebarToggle { display: inline-flex !important; }
-            .top-bar { flex-wrap: wrap; gap: 0.5rem; padding: 0.4rem 0.6rem; }
+            .top-bar { flex-wrap: wrap; gap: 0.5rem; }
             .top-bar input[type="text"] { width: 100%; max-width: none; }
-            .top-bar-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 0.25rem; }
-            .toolbar-group { flex-wrap: nowrap; }
+            .top-bar-actions { width: 100%; justify-content: space-between; }
             .modal { max-width: 95vw; margin: 0.5rem; max-height: 90vh; }
             .splash-sub { right: 1rem !important; bottom: 1rem !important; font-size: 0.7rem !important; }
-            /* Make connection points slightly visible on touch so users know where to tap */
-            .connection-point { opacity: 0.2; r: 9; }
-            .component-terminal { opacity: 0.2; r: 9; }
         }
 
         @media (max-width: 480px) {
@@ -561,6 +615,9 @@
             </div>
             <div class="toolbar-group">
                 <button class="btn-primary" id="btnHelp" title="Ayuda" style="font-size:0.9rem;">❓ Ayuda</button>
+            </div>
+            <div class="toolbar-group">
+                <button class="btn-info" id="btnPanMode" title="Modo desplazar canvas" style="font-size:0.9rem;">✋ Desplazar</button>
             </div>
             <div class="toolbar-group">
                 <button class="btn-info" id="sidebarToggle" title="Menú lateral" style="font-size:0.9rem;">☰ Menú</button>
@@ -828,6 +885,7 @@
         drawingStartType: null, // 'clema' or 'canvas'
         textMode: false,
         dragging: null,
+        dragStartHandle: null, // for two-handle editing
         draggingLabel: null, // for component label dragging
         draggingLabelCompIndex: null,
         selectionBox: null, // for marquee selection
@@ -852,6 +910,7 @@
         dragComponentOffset: null,
         // Pan state
         isPanning: false,
+        panMode: false, // Touch-friendly pan mode toggle
         panStart: null,
         panViewBoxStart: null,
         // Double click detection for wire nodes
@@ -1038,6 +1097,7 @@ const __PNG_CACHE__ = {
             swatch.dataset.color = color;
             swatch.addEventListener('click', () => {
                 document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+                sidebarPalette.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
                 swatch.classList.add('active');
                 APP.selectedColor = color;
                 const wireSet = getSelectedWireSet();
@@ -1185,20 +1245,6 @@ const __PNG_CACHE__ = {
         document.getElementById('btnClear').addEventListener('click', clearWires);
         document.getElementById('btnClearTexts').addEventListener('click', clearTexts);
 
-        // Center view button (helpful on mobile without keyboard shortcut H)
-        const navSection = document.createElement('div');
-        navSection.className = 'sidebar-section';
-        navSection.innerHTML = `
-            <div class="sidebar-section-title">Navegación</div>
-            <button class="btn-secondary" id="btnCenterView" style="width:100%;font-size:0.85rem;min-height:44px;">🎯 Centrar vista (H)</button>
-        `;
-        sidebar.appendChild(navSection);
-        document.getElementById('btnCenterView').addEventListener('click', () => {
-            if (!APP.svg) return;
-            centerView();
-            if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
-        });
-
         // Component library section (collapsible accordion)
         const compSection = document.createElement('div');
         compSection.className = 'sidebar-section';
@@ -1293,6 +1339,19 @@ const __PNG_CACHE__ = {
         document.getElementById('helpModal').addEventListener('click', (e) => {
             if (e.target.id === 'helpModal') document.getElementById('helpModal').classList.add('hidden');
         });
+
+        // Pan mode toggle for touch devices
+        const btnPanMode = document.getElementById('btnPanMode');
+        if (btnPanMode) {
+            btnPanMode.addEventListener('click', () => {
+                APP.panMode = !APP.panMode;
+                btnPanMode.classList.toggle('btn-primary', APP.panMode);
+                btnPanMode.classList.toggle('btn-info', !APP.panMode);
+                btnPanMode.textContent = APP.panMode ? '✋ Desplazando...' : '✋ Desplazar';
+                APP.svg.classList.toggle('panning-available', APP.panMode);
+                setStatus(APP.panMode ? 'Modo desplazar activado - Arrastra para mover el canvas' : 'Modo desplazar desactivado');
+            });
+        }
 
         // Sidebar toggle for mobile
         const sidebarToggle = document.getElementById('sidebarToggle');
@@ -2308,9 +2367,6 @@ const __PNG_CACHE__ = {
                 svg.classList.remove('panning-available');
             }
         });
-
-        // Set up touch interactions for mobile/tablet
-        setupTouchEvents();
     }
 
     function onWheelZoom(e) {
@@ -3710,36 +3766,24 @@ const __PNG_CACHE__ = {
         }
     }
 
+    // Touch
     // ============================================================
-    // TOUCH HANDLERS (called from setupSvgEvents after APP.svg is ready)
+    // ENHANCED TOUCH HANDLERS
     // ============================================================
-    function setupTouchEvents() {
-        const svg = APP.svg;
+    (function() {
         let lastTapTime = 0;
         let lastTapTarget = null;
         let longPressTimer = null;
         let longPressFired = false;
         let pinchStartDist = 0;
         let pinchStartScale = 1;
-        let touchStartPos = null;   // tracks start position for tap-vs-drag detection
-        let touchPanStart = null;   // tracks pan start (single-finger pan on empty space)
+        let touchStartY = 0;
+        let touchStartX = 0;
+        let isScrolling = false;
+        let activeTouchTarget = null;
 
-        // Returns true if el is something interactive (wire, connection point, component...)
-        function isInteractiveEl(el) {
-            if (!el) return false;
-            return el.classList.contains('connection-point') ||
-                   el.classList.contains('component-terminal') ||
-                   el.classList.contains('wire-path') ||
-                   el.classList.contains('wire-path-hit-area') ||
-                   el.classList.contains('wire-control-handle') ||
-                   el.classList.contains('wire-anchor-point') ||
-                   el.classList.contains('wire-node-point') ||
-                   el.classList.contains('text-element') ||
-                   el.classList.contains('component-hit-area') ||
-                   !!el.closest('.component-group') ||
-                   !!el.closest('.text-box') ||
-                   !!el.closest('.clema-control-btn') ||
-                   !!el.closest('.component-label-group');
+        function getTouchPos(touch) {
+            return { clientX: touch.clientX, clientY: touch.clientY };
         }
 
         function getTouchDistance(t1, t2) {
@@ -3747,148 +3791,215 @@ const __PNG_CACHE__ = {
         }
 
         function handleDoubleTap(touch) {
-            svg.dispatchEvent(new MouseEvent('dblclick', {
-                clientX: touch.clientX, clientY: touch.clientY, button: 0, bubbles: true
-            }));
+            // Dispatch dblclick event for wire node insertion
+            const mouseEvent = new MouseEvent('dblclick', {
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+                button: 0,
+                bubbles: true
+            });
+            APP.svg.dispatchEvent(mouseEvent);
         }
 
         function handleLongPress(touch) {
-            // Dispatch contextmenu to the actual element under the touch point
-            const el = document.elementFromPoint(touch.clientX, touch.clientY) || svg;
-            el.dispatchEvent(new MouseEvent('contextmenu', {
-                clientX: touch.clientX, clientY: touch.clientY, button: 2, bubbles: true
-            }));
+            // Dispatch contextmenu event for component actions
+            const mouseEvent = new MouseEvent('contextmenu', {
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+                button: 2,
+                bubbles: true
+            });
+            APP.svg.dispatchEvent(mouseEvent);
         }
 
         function handlePinchZoom(e) {
             if (e.touches.length !== 2) return;
             e.preventDefault();
-            const t1 = e.touches[0], t2 = e.touches[1];
+
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
             const currentDist = getTouchDistance(t1, t2);
+
             if (pinchStartDist === 0) {
                 pinchStartDist = currentDist;
                 pinchStartScale = APP._zoomScale || 1;
                 return;
             }
+
             const scale = currentDist / pinchStartDist;
             const newScale = Math.min(Math.max(pinchStartScale * scale, 0.3), 5);
             APP._zoomScale = newScale;
-            const vb = svg.viewBox.baseVal;
+
+            // Apply zoom via viewBox
+            const vb = APP.svg.viewBox.baseVal;
             const totalW = APP.N * APP.b;
             const totalH = APP.rectH + 2 * APP.margin + 400;
             const baseWidth = totalW + 2 * Math.max(APP.margin + Math.max(Math.min(APP.b * 0.22, 14) * 5, 40), 60);
             const newW = baseWidth / newScale;
             const newH = totalH / newScale;
-            svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${newW} ${newH}`);
+            APP.svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${newW} ${newH}`);
             APP.svgWidth = newW;
             APP.svgHeight = newH;
         }
 
-        svg.addEventListener('touchstart', function(e) {
+        function isInteractiveElement(target) {
+            // Check if touch is on an interactive element
+            if (!target) return false;
+            const interactiveSelectors = [
+                '.connection-point',
+                '.component-terminal',
+                '.wire-control-handle',
+                '.wire-anchor-point',
+                '.wire-node-point',
+                '.wire-path-hit-area',
+                '.wire-path',
+                '.component-hit-area',
+                '.component-group',
+                '.text-box',
+                'button',
+                'input',
+                'select'
+            ];
+            
+            for (const selector of interactiveSelectors) {
+                if (target.matches && target.matches(selector)) return true;
+                if (target.closest && target.closest(selector)) return true;
+            }
+            return false;
+        }
+
+        APP.svg.addEventListener('touchstart', function(e) {
             // Pinch-to-zoom: two fingers
             if (e.touches.length === 2) {
+                e.preventDefault();
                 pinchStartDist = 0;
-                touchPanStart = null;
                 handlePinchZoom(e);
+                isScrolling = false;
                 return;
             }
 
             const touch = e.touches[0];
             const now = Date.now();
-            touchStartPos = { x: touch.clientX, y: touch.clientY };
+            
+            // Track touch start position for scroll detection
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            isScrolling = false;
+            activeTouchTarget = touch.target;
 
             // Double-tap detection
             if (now - lastTapTime < 350 && lastTapTarget === touch.target) {
+                e.preventDefault();
                 handleDoubleTap(touch);
                 lastTapTime = 0;
-                touchStartPos = null;
                 return;
             }
             lastTapTime = now;
             lastTapTarget = touch.target;
 
-            // Check if touch lands on an interactive element
-            const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
-            const interactive = isInteractiveEl(elUnder);
-
-            if (!interactive && !APP.isDrawing) {
-                // Empty space: start single-finger pan (mobile navigation)
-                const vb = svg.viewBox.baseVal;
-                touchPanStart = { x: touch.clientX, y: touch.clientY, vbX: vb.x, vbY: vb.y };
-                e.preventDefault();
-                return;
-            }
-
-            touchPanStart = null;
+            // Long-press timer (500ms)
             longPressFired = false;
             longPressTimer = setTimeout(() => {
                 longPressFired = true;
                 handleLongPress(touch);
             }, 500);
 
-            dispatchMouse(svg, touch.clientX, touch.clientY, 'mousedown');
+            // Pan mode: start panning immediately
+            if (APP.panMode) {
+                e.preventDefault();
+                APP.isPanning = true;
+                APP.panStart = { x: touch.clientX, y: touch.clientY };
+                const vb = APP.svg.viewBox.baseVal;
+                APP.panViewBoxStart = { x: vb.x, y: vb.y };
+                APP.svg.classList.add('panning-active');
+                return;
+            }
+
+            // ALWAYS dispatch mousedown for touch, regardless of target
+            // This ensures components, wires, etc. can be dragged
+            e.preventDefault();
+            dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mousedown');
         }, { passive: false });
 
-        svg.addEventListener('touchmove', function(e) {
+        APP.svg.addEventListener('touchmove', function(e) {
             // Pinch-to-zoom
             if (e.touches.length === 2) {
+                e.preventDefault();
                 clearTimeout(longPressTimer);
-                touchPanStart = null;
                 handlePinchZoom(e);
                 return;
             }
+
+            // Cancel long-press on move
             clearTimeout(longPressTimer);
 
             const touch = e.touches[0];
-
-            // Single-finger pan on empty space
-            if (touchPanStart) {
+            
+            // Handle panning
+            if (APP.isPanning && APP.panStart && APP.panViewBoxStart) {
                 e.preventDefault();
-                const dx = touch.clientX - touchPanStart.x;
-                const dy = touch.clientY - touchPanStart.y;
-                const vb = svg.viewBox.baseVal;
-                const scaleX = vb.width / Math.max(svg.clientWidth, 1);
-                const scaleY = vb.height / Math.max(svg.clientHeight, 1);
-                svg.setAttribute('viewBox',
-                    `${touchPanStart.vbX - dx * scaleX} ${touchPanStart.vbY - dy * scaleY} ${vb.width} ${vb.height}`
-                );
+                const dx = touch.clientX - APP.panStart.x;
+                const dy = touch.clientY - APP.panStart.y;
+                const vb = APP.svg.viewBox.baseVal;
+                const scale = vb.width / APP.svg.clientWidth;
+                const vbDx = dx * scale;
+                const vbDy = dy * scale;
+                const newX = APP.panViewBoxStart.x - vbDx;
+                const newY = APP.panViewBoxStart.y - vbDy;
+                const totalW = APP.N * APP.b;
+                const totalH = APP.rectH + 2 * APP.margin + 400;
+                const baseWidth = totalW + 2 * Math.max(APP.margin + Math.max(Math.min(APP.b * 0.22, 14) * 5, 40), 60);
+                const baseHeight = totalH;
+                APP.svg.setAttribute('viewBox', `${Math.max(0, Math.min(newX, baseWidth - vb.width))} ${Math.max(0, Math.min(newY, baseHeight - vb.height))} ${vb.width} ${vb.height}`);
                 return;
             }
-
-            dispatchMouse(svg, touch.clientX, touch.clientY, 'mousemove');
+            
+            // Detect if user is trying to scroll (vertical movement)
+            const deltaX = Math.abs(touch.clientX - touchStartX);
+            const deltaY = Math.abs(touch.clientY - touchStartY);
+            
+            // If vertical scroll is dominant and not dragging anything, allow scrolling
+            if (!isScrolling && deltaY > 10 && deltaY > deltaX && !APP.dragging && APP.draggingComponent === null && !APP.isDrawing && !APP.panMode) {
+                isScrolling = true;
+                // Let the browser handle the scroll
+                return;
+            }
+            
+            // If horizontal movement or dragging, handle as drag
+            if (!isScrolling && (deltaX > 5 || APP.dragging || APP.draggingComponent !== null || APP.isDrawing)) {
+                e.preventDefault();
+                dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mousemove');
+            }
         }, { passive: false });
 
-        svg.addEventListener('touchend', function(e) {
+        APP.svg.addEventListener('touchend', function(e) {
+            // Clear long-press timer
             clearTimeout(longPressTimer);
-            touchPanStart = null;
+
+            // End panning
+            if (APP.isPanning) {
+                APP.isPanning = false;
+                APP.panStart = null;
+                APP.panViewBoxStart = null;
+                APP.svg.classList.remove('panning-active');
+            }
 
             if (e.touches.length === 0 && !longPressFired) {
                 const touch = e.changedTouches[0];
-                // Determine if this was a tap (minimal movement) or a drag
-                const moved = touchStartPos && Math.hypot(
-                    touch.clientX - touchStartPos.x,
-                    touch.clientY - touchStartPos.y
-                ) > 10;
-                dispatchMouse(svg, touch.clientX, touch.clientY, 'mouseup');
-                // For taps, also dispatch click so onClick() handles connection points,
-                // wire selection, canvas interactions, etc.
-                if (!moved) {
-                    dispatchMouse(svg, touch.clientX, touch.clientY, 'click');
-                }
+                // Always dispatch mouseup to complete any drag/click action
+                dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mouseup');
+                // Also dispatch click event (needed since preventDefault stops native click)
+                dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'click');
             }
-            touchStartPos = null;
+            
+            isScrolling = false;
+            activeTouchTarget = null;
         }, { passive: false });
-    }
+    })();
 
-    // Dispatch a mouse event to the actual element at (cx, cy) so that
-    // event handlers checking e.target work correctly on both desktop and mobile.
+    // Keep old dispatch function for compatibility
     function dispatchMouse(svg, cx, cy, type) {
-        const target = type !== 'mousemove'
-            ? (document.elementFromPoint(cx, cy) || svg)
-            : svg;
-        target.dispatchEvent(new MouseEvent(type, {
-            clientX: cx, clientY: cy, button: 0, bubbles: true, cancelable: true
-        }));
+        svg.dispatchEvent(new MouseEvent(type, { clientX: cx, clientY: cy, button: 0 }));
     }
 
     // ============================================================
@@ -3911,8 +4022,13 @@ const __PNG_CACHE__ = {
             const nodes = w.nodes || [];
 
             if (nodes.length === 0) {
-                // Cubic bezier with two handles (same formula for sine and arc wires)
-                d = `M ${w.start.x} ${w.start.y} C ${w.h1x} ${w.h1y}, ${w.h2x} ${w.h2y}, ${w.end.x} ${w.end.y}`;
+                if (w.isSine) {
+                    // Sine curve: cubic bezier with independent handles
+                    d = `M ${w.start.x} ${w.start.y} C ${w.h1x} ${w.h1y}, ${w.h2x} ${w.h2y}, ${w.end.x} ${w.end.y}`;
+                } else {
+                    // Regular arc: cubic bezier with two handles
+                    d = `M ${w.start.x} ${w.start.y} C ${w.h1x} ${w.h1y}, ${w.h2x} ${w.h2y}, ${w.end.x} ${w.end.y}`;
+                }
             } else {
                 // Multi-segment with nodes
                 d = `M ${w.start.x} ${w.start.y}`;
