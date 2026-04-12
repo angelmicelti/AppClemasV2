@@ -2,7 +2,7 @@
   "name": "Montaje de Circuitos con Clemas",
   "short_name": "ClemasV2",
   "description": "Aplicación web para diseñar y montar circuitos eléctricos con clemas de forma visual e interactiva.",
-  "start_url": "./ClemasV2_corregido.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
