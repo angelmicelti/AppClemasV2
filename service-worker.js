@@ -3,7 +3,7 @@
    Cache-first strategy with network fallback for offline support
    ============================================================ */
 
-var CACHE_NAME = 'clemas-v2-cache-v1.11';
+var CACHE_NAME = 'clemas-v2-cache-v1.13';
 
 /* Files to cache for offline use */
 var ASSETS_TO_CACHE = [
