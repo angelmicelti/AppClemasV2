@@ -133,8 +133,50 @@
         .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
         .btn-danger { background: var(--danger); color: white; }
         .btn-success { background: var(--success); color: white; }
+        .btn-success:hover:not(:disabled) { background: #15803d; }
         .btn-secondary { background: var(--gray-200); color: var(--gray-700); }
         .btn-secondary:hover:not(:disabled) { background: var(--gray-300); }
+        .btn-info { background: #0891b2; color: white; }
+        .btn-info:hover:not(:disabled) { background: #0e7490; }
+
+        .sidebar-close-btn { display: none; position: absolute; top: 0.5rem; right: 0.5rem; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--gray-600); padding: 0.5rem; min-width: 44px; min-height: 44px; }
+
+        /* Tools panel grid */
+        .tools-panel-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .tools-panel-card {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .tools-panel-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-1px);
+        }
+        .tools-panel-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+        .tools-panel-card:nth-child(2) .tools-panel-title {
+            color: var(--success);
+        }
+        .tools-panel-buttons {
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .tools-panel-buttons button {
+            font-size: 0.8rem;
+        }
 
         .color-palette {
             display: flex;
@@ -434,9 +476,12 @@
             .color-swatch { width: 32px; height: 32px; border-width: 3px; }
             .color-palette { gap: 0.4rem; padding: 0.5rem; }
             .export-options { grid-template-columns: 1fr; }
+            .tools-panel-grid { grid-template-columns: 1fr; }
+            .tools-panel-buttons button { font-size: 0.75rem; }
             .sidebar { width: 100%; min-width: 100%; max-width: 100%; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900; transform: translateX(-100%); transition: transform 0.3s ease; padding: 1rem; overflow-y: auto; background: white; box-shadow: var(--shadow-lg); }
             .sidebar.open { transform: translateX(0); }
-            .sidebar-close-btn { display: block; position: absolute; top: 0.5rem; right: 0.5rem; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--gray-600); padding: 0.5rem; min-width: 44px; min-height: 44px; }
+            .sidebar-close-btn { display: block; }
+            .sidebar.open .sidebar-close-btn { display: block; }
             #sidebarToggle { display: inline-flex !important; }
             .top-bar { flex-wrap: wrap; gap: 0.5rem; }
             .top-bar input[type="text"] { width: 100%; max-width: none; }
@@ -506,50 +551,50 @@
 
         <div class="top-bar-actions">
             <div class="toolbar-group">
-                <button class="btn-secondary" id="btnNew" title="Nuevo proyecto en blanco">+ Nuevo</button>
+                <button class="btn-primary" id="btnNew" title="Nuevo proyecto en blanco" style="font-size:0.9rem;">✨ + Nuevo</button>
             </div>
             <div class="toolbar-group">
-                <button class="btn-secondary" id="btnUndo" disabled title="Deshacer">↩ Deshacer</button>
-                <button class="btn-secondary" id="btnRedo" disabled title="Rehacer">Rehacer ↪</button>
+                <button class="btn-success" id="btnUndo" disabled title="Deshacer" style="font-size:0.9rem;">↩ Deshacer</button>
+                <button class="btn-success" id="btnRedo" disabled title="Rehacer" style="font-size:0.9rem;">Rehacer ↪</button>
             </div>
             <div class="toolbar-group">
-                <button class="btn-secondary" id="btnToolsToggle" title="Exportar, guardar, importar">☰ Archivo</button>
+                <button class="btn-info" id="btnToolsToggle" title="Exportar, guardar, importar" style="font-size:0.9rem;">📁 Archivo</button>
             </div>
             <div class="toolbar-group">
-                <button class="btn-primary" id="btnHelp" title="Ayuda" style="font-size:1rem;">❓ Ayuda</button>
+                <button class="btn-primary" id="btnHelp" title="Ayuda" style="font-size:0.9rem;">❓ Ayuda</button>
             </div>
             <div class="toolbar-group">
-                <button class="btn-secondary" id="sidebarToggle" title="Menú lateral">☰ Menú</button>
+                <button class="btn-info" id="sidebarToggle" title="Menú lateral" style="font-size:0.9rem;">☰ Menú</button>
             </div>
         </div>
     </div>
 
     <!-- Tools accordion panel -->
     <div class="hidden" id="toolsPanel" style="background:var(--gray-50);border-bottom:1px solid var(--gray-200);padding:0.75rem 1rem;">
-        <div style="display:flex;flex-wrap:wrap;gap:0.75rem;max-width:900px;margin:0 auto;">
-            <div>
-                <div style="font-weight:600;font-size:.8rem;color:var(--gray-600);margin-bottom:0.375rem;">Exportar</div>
-                <div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-                    <button class="btn-primary" data-export="json">JSON</button>
-                    <button class="btn-primary" data-export="svg">SVG</button>
-                    <button class="btn-primary" data-export="png">PNG</button>
-                    <button class="btn-primary" data-export="jpg">JPG</button>
+        <div class="tools-panel-grid">
+            <div class="tools-panel-card">
+                <div class="tools-panel-title">📤 Exportar como</div>
+                <div class="tools-panel-buttons">
+                    <button class="btn-primary" data-export="json">📋 JSON</button>
+                    <button class="btn-primary" data-export="svg">🖼️ SVG</button>
+                    <button class="btn-primary" data-export="png">🖼️ PNG</button>
+                    <button class="btn-primary" data-export="jpg">🖼️ JPG</button>
                 </div>
             </div>
-            <div>
-                <div style="font-weight:600;font-size:.8rem;color:var(--gray-600);margin-bottom:0.375rem;">Local</div>
-                <div style="display:flex;gap:0.25rem;">
+            <div class="tools-panel-card">
+                <div class="tools-panel-title">💾 Guardado local</div>
+                <div class="tools-panel-buttons">
                     <button class="btn-success" id="btnSaveLocal">💾 Guardar</button>
                     <button class="btn-success" id="btnLoadLocal">📂 Cargar</button>
                     <button class="btn-danger" id="btnDeleteLocal">🗑️ Borrar</button>
                 </div>
             </div>
-            <div>
-                <div style="font-weight:600;font-size:.8rem;color:var(--gray-600);margin-bottom:0.375rem;">Importar / GitHub</div>
-                <div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
-                    <button class="btn-success" id="btnImport">Importar</button>
-                    <button class="btn-success" id="btnGithubSave">GitHub ↗</button>
-                    <button class="btn-success" id="btnGithubLoad">GitHub ↙</button>
+            <div class="tools-panel-card">
+                <div class="tools-panel-title">☁️ GitHub Gist</div>
+                <div class="tools-panel-buttons">
+                    <button class="btn-success" id="btnImport">📥 Importar</button>
+                    <button class="btn-success" id="btnGithubSave">☁️ Guardar ↗</button>
+                    <button class="btn-success" id="btnGithubLoad">☁️ Cargar ↙</button>
                 </div>
             </div>
         </div>
@@ -1076,7 +1121,7 @@ const __PNG_CACHE__ = {
         textSection.className = 'sidebar-section';
         textSection.innerHTML = `
             <div class="sidebar-section-title">Texto</div>
-            <button class="btn-primary" id="sidebarAddText" style="width:100%;">+ Texto (T)</button>
+            <button class="btn-primary" id="sidebarAddText" style="width:100%;font-size:0.85rem;min-height:44px;">📝 + Añadir texto (T)</button>
         `;
         sidebar.appendChild(textSection);
 
@@ -1134,8 +1179,8 @@ const __PNG_CACHE__ = {
         clearSection.className = 'sidebar-section';
         clearSection.innerHTML = `
             <div class="sidebar-section-title">Limpiar</div>
-            <button class="btn-danger" id="btnClear" style="width:100%;">Limpiar cables</button>
-            <button class="btn-danger" id="btnClearTexts" style="width:100%;">Limpiar textos</button>
+            <button class="btn-danger" id="btnClear" style="width:100%;font-size:0.85rem;min-height:44px;">🗑️ Borrar todos los cables</button>
+            <button class="btn-danger" id="btnClearTexts" style="width:100%;font-size:0.85rem;min-height:44px;">🗑️ Borrar todos los textos</button>
         `;
         sidebar.appendChild(clearSection);
 
