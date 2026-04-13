@@ -2378,11 +2378,12 @@ const __PNG_CACHE__ = {
 
     function onWheelZoom(e) {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.08 : 0.08;
+        // deltaY > 0 → scroll down → zoom out; deltaY < 0 → scroll up → zoom in
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
         const factor = 1 + delta;
 
         if (!APP._zoomScale) APP._zoomScale = 1;
-        const newZoom = Math.max(0.3, Math.min(5, APP._zoomScale * factor));
+        const newZoom = Math.max(0.2, Math.min(8, APP._zoomScale * factor));
         APP._zoomScale = newZoom;
 
         const totalW = APP.N * APP.b;
@@ -2392,12 +2393,19 @@ const __PNG_CACHE__ = {
         const padding = Math.max(APP.margin + sideExtra, 60);
         const baseWidth = totalW + 2 * padding;
 
-        const newWidth = baseWidth * newZoom;
-        const newHeight = totalH * newZoom;
-        const clemaCenterX = APP.margin + totalW / 2;
-        const clemaCenterY = APP.rectStartY + APP.rectH / 2;
-        const viewBoxX = clemaCenterX - newWidth / 2;
-        const viewBoxY = clemaCenterY - newHeight / 2;
+        // Correct formula: larger zoom → smaller viewBox (content appears bigger)
+        const newWidth = baseWidth / newZoom;
+        const newHeight = totalH / newZoom;
+
+        // Zoom centered on mouse cursor position in SVG coordinates
+        const svgPt = coords(e);
+        const vb = APP.svg.viewBox.baseVal;
+        // Fraction of current viewBox where cursor is
+        const fx = (svgPt.x - vb.x) / vb.width;
+        const fy = (svgPt.y - vb.y) / vb.height;
+        // New viewBox origin so cursor stays under mouse
+        const viewBoxX = svgPt.x - fx * newWidth;
+        const viewBoxY = svgPt.y - fy * newHeight;
 
         APP.svg.setAttribute('viewBox', `${viewBoxX} ${viewBoxY} ${newWidth} ${newHeight}`);
     }
@@ -3809,14 +3817,16 @@ const __PNG_CACHE__ = {
         }
 
         function handleLongPress(touch) {
-            // Dispatch contextmenu event for component actions
+            // Find the actual element under the touch point, not just the SVG
+            const target = document.elementFromPoint(touch.clientX, touch.clientY) || APP.svg;
             const mouseEvent = new MouseEvent('contextmenu', {
                 clientX: touch.clientX,
                 clientY: touch.clientY,
                 button: 2,
-                bubbles: true
+                bubbles: true,
+                cancelable: true,
             });
-            APP.svg.dispatchEvent(mouseEvent);
+            target.dispatchEvent(mouseEvent);
         }
 
         function handlePinchZoom(e) {
@@ -3834,7 +3844,7 @@ const __PNG_CACHE__ = {
             }
 
             const scale = currentDist / pinchStartDist;
-            const newScale = Math.min(Math.max(pinchStartScale * scale, 0.3), 5);
+            const newScale = Math.min(Math.max(pinchStartScale * scale, 0.2), 8);
             APP._zoomScale = newScale;
 
             // Apply zoom via viewBox
@@ -3957,7 +3967,9 @@ const __PNG_CACHE__ = {
                 const totalH = APP.rectH + 2 * APP.margin + 400;
                 const baseWidth = totalW + 2 * Math.max(APP.margin + Math.max(Math.min(APP.b * 0.22, 14) * 5, 40), 60);
                 const baseHeight = totalH;
-                APP.svg.setAttribute('viewBox', `${Math.max(0, Math.min(newX, baseWidth - vb.width))} ${Math.max(0, Math.min(newY, baseHeight - vb.height))} ${vb.width} ${vb.height}`);
+                // Allow free panning in all directions (no Math.max(0) lower bound)
+                const margin2 = 200;
+                APP.svg.setAttribute('viewBox', `${Math.max(-margin2, Math.min(newX, baseWidth - vb.width + margin2))} ${Math.max(-margin2, Math.min(newY, baseHeight - vb.height + margin2))} ${vb.width} ${vb.height}`);
                 return;
             }
             
@@ -4006,7 +4018,14 @@ const __PNG_CACHE__ = {
 
     // Keep old dispatch function for compatibility
     function dispatchMouse(svg, cx, cy, type) {
-        svg.dispatchEvent(new MouseEvent(type, { clientX: cx, clientY: cy, button: 0 }));
+        // Find the actual SVG element under the touch point so event handlers
+        // can use e.target to detect connection points, wires, components, etc.
+        const realTarget = document.elementFromPoint(cx, cy) || svg;
+        const inSvg = svg.contains(realTarget) ? realTarget : svg;
+        inSvg.dispatchEvent(new MouseEvent(type, {
+            clientX: cx, clientY: cy, button: 0,
+            bubbles: true, cancelable: true
+        }));
     }
 
     // ============================================================
@@ -4883,38 +4902,64 @@ const __PNG_CACHE__ = {
     async function exportImage(format) {
         const projectName = APP.projectName.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_ -]/g, '').trim() || 'clemas_design';
         const cloned = await cloneSvgForExport();
-        const svgData = new XMLSerializer().serializeToString(cloned);
 
-        const svgBase64 = btoa(encodeURIComponent(svgData).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
-        const dataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+        // Use a Blob URL to avoid btoa encoding issues with special characters / large data URLs
+        const svgData = new XMLSerializer().serializeToString(cloned);
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const svgUrl = URL.createObjectURL(svgBlob);
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
 
         img.onload = () => {
-            canvas.width = img.width * 2; canvas.height = img.height * 2;
-            ctx.scale(2, 2);
-            if (format === 'jpg') { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-            ctx.drawImage(img, 0, 0);
+            // Use natural dimensions at 2× DPR for crispness
+            const scale = 2;
+            const w = (img.naturalWidth || img.width || APP.svgWidth || 800);
+            const h = (img.naturalHeight || img.height || APP.svgHeight || 600);
+            canvas.width = w * scale;
+            canvas.height = h * scale;
+            ctx.scale(scale, scale);
+            if (format === 'jpg') { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, w, h); }
+            ctx.drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(svgUrl);
             canvas.toBlob(blob => {
-                if (!blob) { alert('Error al generar la imagen.'); return; }
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `${projectName}.${format === 'png' ? 'png' : 'jpg'}`;
-                a.click();
+                if (!blob) { alert('Error al generar la imagen. Intente con SVG.'); return; }
+                const mime = format === 'png' ? 'image/png' : 'image/jpeg';
+                const filename = `${projectName}.${format === 'png' ? 'png' : 'jpg'}`;
+                // Mobile-safe download: try standard anchor, fall back to window.open
+                try {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+                } catch (err) {
+                    // Fallback: open in new tab for manual save
+                    const reader = new FileReader();
+                    reader.onload = ev => { window.open(ev.target.result, '_blank'); };
+                    reader.readAsDataURL(blob);
+                }
             }, format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
         };
         img.onerror = () => {
+            URL.revokeObjectURL(svgUrl);
             alert('Error al exportar la imagen. Intente con SVG en su lugar.');
         };
-        img.src = dataUrl;
+        img.src = svgUrl;
     }
 
     function download(content, filename, mime) {
         const blob = new Blob([content], { type: mime });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
     }
 
     // ============================================================
@@ -4935,11 +4980,19 @@ const __PNG_CACHE__ = {
             savedAt: new Date().toISOString()
         };
         try {
-            localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
+            const serialized = JSON.stringify(data);
+            localStorage.setItem(LOCAL_KEY, serialized);
             setStatus('Proyecto guardado en el navegador');
             alert('Proyecto guardado correctamente.');
         } catch (e) {
-            alert('Error al guardar: ' + e.message);
+            if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                alert('Error al guardar: la memoria del navegador está llena. Intente borrar datos anteriores o use la exportación JSON.');
+            } else if (e.name === 'SecurityError') {
+                alert('Error al guardar: el navegador no permite almacenamiento local en este contexto (modo privado o restricción del sistema).');
+            } else {
+                alert('Error al guardar: ' + e.message);
+            }
+            console.error('saveToLocal error:', e);
         }
     }
 
@@ -5093,6 +5146,7 @@ const __PNG_CACHE__ = {
         const token = document.getElementById('ghToken').value.trim();
         const filename = document.getElementById('ghFilename').value.trim() || 'clemas_design.json';
         if (!token) return;
+        const authHeader = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
 
         const listDiv = document.getElementById('ghSaveFileList');
         listDiv.innerHTML = '<div style="padding:1rem;text-align:center;color:#6b7280;">Buscando...</div>';
@@ -5101,7 +5155,7 @@ const __PNG_CACHE__ = {
         try {
             // Fetch all gists
             const res = await fetch('https://api.github.com/gists', {
-                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' }
             });
             if (!res.ok) { 
                 const e = await res.json().catch(() => ({ message: 'Error desconocido' })); 
@@ -5153,6 +5207,7 @@ const __PNG_CACHE__ = {
             exportDate: new Date().toISOString()
         };
 
+        const authHeader = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
         try {
             let url, method;
             if (asNew || !ghExistingGistId) {
@@ -5165,7 +5220,7 @@ const __PNG_CACHE__ = {
 
             const res = await fetch(url, {
                 method: method,
-                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
                 body: JSON.stringify({ description: desc, public: false, files: { [filename]: { content: JSON.stringify(data, null, 2) } } })
             });
             if (!res.ok) { 
@@ -5188,9 +5243,10 @@ const __PNG_CACHE__ = {
     async function loadFileListFromGithub() {
         const token = document.getElementById('ghLoadToken').value.trim();
         if (!token) { alert('Introduzca su token'); return; }
+        const authHeader = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
         try {
             const res = await fetch('https://api.github.com/gists', {
-                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' }
             });
             if (!res.ok) { 
                 const e = await res.json().catch(() => ({ message: `Error HTTP: ${res.status}` })); 
@@ -5244,7 +5300,7 @@ const __PNG_CACHE__ = {
                 if (!hasClemasContent && hasTruncated) {
                     try {
                         const r = await fetch(gist.url, {
-                            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                            headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' }
                         });
                         if (r.ok) {
                             const fullGist = await r.json();
@@ -5300,7 +5356,7 @@ const __PNG_CACHE__ = {
                 item.querySelector('.gh-load-btn').addEventListener('click', async (e) => {
                     e.stopPropagation();
                     try {
-                        const r = await fetch(gist.url, { headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' } });
+                        const r = await fetch(gist.url, { headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' } });
                         const gd = await r.json();
                         
                         // Find a valid Clemas JSON file using for...of to support async/await
@@ -5310,7 +5366,7 @@ const __PNG_CACHE__ = {
                             
                             let content = f.content;
                             if (!content && f.raw_url) {
-                                const fr = await fetch(f.raw_url, { headers: { 'Authorization': `token ${token}` } });
+                                const fr = await fetch(f.raw_url, { headers: { 'Authorization': authHeader } });
                                 content = await fr.text();
                             }
                             if (!content) continue;
@@ -5334,7 +5390,7 @@ const __PNG_CACHE__ = {
                         if (jsonFile) {
                             let content = jsonFile._cachedContent || jsonFile.content;
                             if (!content && jsonFile.raw_url) {
-                                const fr = await fetch(jsonFile.raw_url, { headers: { 'Authorization': `token ${token}` } });
+                                const fr = await fetch(jsonFile.raw_url, { headers: { 'Authorization': authHeader } });
                                 content = await fr.text();
                             }
                             if (content) {
@@ -5352,12 +5408,12 @@ const __PNG_CACHE__ = {
                     const newDesc = prompt('Nueva descripción:', oldDesc);
                     if (newDesc !== null && newDesc !== oldDesc) {
                         try {
-                            const r = await fetch(gist.url, { headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' } });
+                            const r = await fetch(gist.url, { headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' } });
                             const gd = await r.json();
                             const files = {};
                             for (const [fname, fdata] of Object.entries(gd.files)) {
                                 if (fdata.truncated || !fdata.content) {
-                                    const fr = await fetch(fdata.raw_url, { headers: { 'Authorization': `token ${token}` } });
+                                    const fr = await fetch(fdata.raw_url, { headers: { 'Authorization': authHeader } });
                                     files[fname] = { content: await fr.text() };
                                 } else {
                                     files[fname] = { content: fdata.content };
@@ -5365,7 +5421,7 @@ const __PNG_CACHE__ = {
                             }
                             const res = await fetch(`https://api.github.com/gists/${gist.id}`, {
                                 method: 'PATCH',
-                                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+                                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
                                 body: JSON.stringify({ description: newDesc, files })
                             });
                             if (!res.ok) { const er = await res.json(); throw new Error(er.message); }
@@ -5384,7 +5440,7 @@ const __PNG_CACHE__ = {
                     try {
                         const res = await fetch(`https://api.github.com/gists/${gist.id}`, {
                             method: 'DELETE',
-                            headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                            headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' }
                         });
                         if (!res.ok) { const er = await res.json(); throw new Error(er.message); }
                         // Remove item from DOM immediately
