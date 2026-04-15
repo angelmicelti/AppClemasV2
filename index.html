@@ -33,18 +33,6 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* Touch device optimizations */
-        body {
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            touch-action: manipulation;
-        }
-
-        #mainSvg {
-            touch-action: none;
-            -webkit-touch-callout: none;
-        }
-
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--gray-100);
@@ -139,8 +127,6 @@
         .btn-info { background: #0891b2; color: white; }
         .btn-info:hover:not(:disabled) { background: #0e7490; }
 
-        .sidebar-close-btn { display: none; position: absolute; top: 0.5rem; right: 0.5rem; font-size: 1.5rem; background: none; border: none; cursor: pointer; color: var(--gray-600); padding: 0.5rem; min-width: 44px; min-height: 44px; }
-
         /* Tools panel grid */
         .tools-panel-grid {
             display: grid;
@@ -204,21 +190,11 @@
         .canvas-container {
             flex: 1;
             overflow: auto;
-            -webkit-overflow-scrolling: touch;
             padding: 1rem;
             display: flex;
             justify-content: center;
             align-items: flex-start;
             min-width: 0;
-            touch-action: pan-x pan-y;
-        }
-
-        @media (max-width: 768px) {
-            .canvas-container {
-                padding: 0.5rem;
-                overflow-x: auto;
-                overflow-y: auto;
-            }
         }
 
         /* Sidebar + canvas layout */
@@ -267,6 +243,66 @@
             padding-top: 0.375rem;
         }
 
+        /* Expand-to-right panels */
+        .sidebar-option-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.375rem 0.5rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--gray-700);
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .sidebar-option-btn:hover { background: var(--gray-50); }
+        .sidebar-option-btn .arrow {
+            transition: transform 0.15s;
+            font-size: 0.7rem;
+            color: var(--gray-400);
+        }
+        .sidebar-option-btn.active .arrow { transform: rotate(90deg); }
+
+        .sidebar-option-panel {
+            display: none;
+            margin: 0 0 0.375rem 0.5rem;
+            padding: 0.75rem;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 0.375rem;
+        }
+        .sidebar-option-panel.open { display: block; }
+
+        .sidebar-option-panel input[type="color"] {
+            width: 100%;
+            height: 36px;
+            border: 1px solid var(--gray-300);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            padding: 2px;
+        }
+        .sidebar-option-panel input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .sidebar-option-panel .panel-label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--gray-600);
+            margin-bottom: 0.375rem;
+        }
+        .sidebar-option-panel .panel-value {
+            font-size: 0.7rem;
+            color: var(--gray-800);
+            text-align: center;
+            margin-top: 0.25rem;
+        }
+
         .sidebar-section-title {
             font-weight: 600;
             font-size: 0.75rem;
@@ -281,57 +317,7 @@
             box-shadow: var(--shadow-lg);
             max-width: 100%;
             cursor: default;
-            touch-action: none;
-            -webkit-user-select: none;
             user-select: none;
-        }
-
-        #mainSvg.panning-active {
-            cursor: grabbing;
-        }
-
-        #mainSvg.panning-available {
-            cursor: grab;
-        }
-
-        @media (max-width: 768px) {
-            #mainSvg {
-                max-width: none;
-                min-width: 800px;
-            }
-        }
-
-        /* Make interactive elements larger on touch devices */
-        @media (max-width: 768px) {
-            .connection-point {
-                r: 10 !important;
-                opacity: 0.6 !important;
-            }
-            
-            .connection-point:hover {
-                r: 12 !important;
-                opacity: 1 !important;
-            }
-
-            .component-terminal {
-                r: 10 !important;
-                opacity: 0.6 !important;
-            }
-
-            .component-terminal:hover {
-                r: 12 !important;
-                opacity: 1 !important;
-            }
-
-            .wire-control-handle {
-                r: 8 !important;
-                stroke-width: 3 !important;
-            }
-
-            .node-handle {
-                r: 8 !important;
-                stroke-width: 3 !important;
-            }
         }
 
         .modal-overlay {
@@ -441,10 +427,7 @@
         .font-size-control label { margin: 0; white-space: nowrap; }
         .font-size-control input { width: 70px; margin: 0; }
 
-        /* SVG styles */
-        .clema-rect { fill: #fef3c7; stroke: #92400e; stroke-width: 2; }
-        .clema-circle { fill: #d1d5db; stroke: #6b7280; stroke-width: 1.5; }
-        .clema-line { stroke: #374151; stroke-width: 2; }
+        /* SVG styles - clema colors are set via JS inline styles */
 
         /* Connection points - invisible unless hovered */
         .connection-point {
@@ -524,32 +507,6 @@
 
         /* Canvas point indicators - removed, click on empty space instead */
 
-        @media (max-width: 768px) {
-            button { padding: 0.5rem 0.75rem; font-size: 0.85rem; min-height: 44px; }
-            .color-swatch { width: 32px; height: 32px; border-width: 3px; }
-            .color-palette { gap: 0.4rem; padding: 0.5rem; }
-            .export-options { grid-template-columns: 1fr; }
-            .tools-panel-grid { grid-template-columns: 1fr; }
-            .tools-panel-buttons button { font-size: 0.75rem; }
-            .sidebar { width: 100%; min-width: 100%; max-width: 100%; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900; transform: translateX(-100%); transition: transform 0.3s ease; padding: 1rem; overflow-y: auto; background: white; box-shadow: var(--shadow-lg); }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-close-btn { display: block; }
-            .sidebar.open .sidebar-close-btn { display: block; }
-            #sidebarToggle { display: inline-flex !important; }
-            .top-bar { flex-wrap: wrap; gap: 0.5rem; }
-            .top-bar input[type="text"] { width: 100%; max-width: none; }
-            .top-bar-actions { width: 100%; justify-content: space-between; }
-            .modal { max-width: 95vw; margin: 0.5rem; max-height: 90vh; }
-            .splash-sub { right: 1rem !important; bottom: 1rem !important; font-size: 0.7rem !important; }
-        }
-
-        @media (max-width: 480px) {
-            .top-bar { padding: 0.3rem 0.5rem; }
-            button { font-size: 0.75rem; padding: 0.4rem 0.6rem; }
-            .color-swatch { width: 28px; height: 28px; }
-            header h1 { font-size: 1rem; }
-        }
-
         #sidebarToggle { display: none; }
 
         /* Splash screen */
@@ -616,12 +573,6 @@
             <div class="toolbar-group">
                 <button class="btn-primary" id="btnHelp" title="Ayuda" style="font-size:0.9rem;">❓ Ayuda</button>
             </div>
-            <div class="toolbar-group">
-                <button class="btn-info" id="btnPanMode" title="Modo desplazar canvas" style="font-size:0.9rem;">✋ Desplazar</button>
-            </div>
-            <div class="toolbar-group">
-                <button class="btn-info" id="sidebarToggle" title="Menú lateral" style="font-size:0.9rem;">☰ Menú</button>
-            </div>
         </div>
     </div>
 
@@ -671,7 +622,7 @@
         <div class="modal">
             <h2>CONFIGURA LAS CLEMAS</h2>
             <label for="numClemas">Número de clemas (N):</label>
-            <input type="number" id="numClemas" min="1" max="50" value="5">
+            <input type="number" id="numClemas" min="1" max="50" value="6">
             <label for="baseUnit">Base del rectángulo (b píxeles):</label>
             <input type="number" id="baseUnit" min="30" max="120" value="60">
             <div class="modal-actions">
@@ -687,6 +638,7 @@
             <label for="ghToken">Token de GitHub:</label>
             <div style="display:flex;gap:0.5rem;">
                 <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx" style="flex:1;">
+                <button class="btn-secondary" id="btnSaveToken" title="Guardar token en el navegador">💾 Guardar</button>
                 <button class="btn-secondary" id="btnLoadTokenSave" title="Cargar token desde archivo">📄 Token</button>
             </div>
             <label for="ghFilename">Nombre del archivo:</label>
@@ -709,6 +661,7 @@
             <label for="ghLoadToken">Token de GitHub:</label>
             <div style="display:flex;gap:0.5rem;">
                 <input type="password" id="ghLoadToken" placeholder="ghp_xxxxxxxxxxxx" style="flex:1;">
+                <button class="btn-secondary" id="btnSaveTokenLoad" title="Guardar token en el navegador">💾 Guardar</button>
                 <button class="btn-secondary" id="btnLoadTokenLoad" title="Cargar token desde archivo">📄 Token</button>
             </div>
             <button class="btn-primary" id="btnGhLoadFiles" style="width:100%;margin-bottom:1rem;">Obtener archivos</button>
@@ -773,14 +726,14 @@
                     <li><b>↩ Deshacer / Rehacer ↪:</b> Deshace o rehace la última acción.</li>
                     <li><b>☰ Archivo:</b> Exportar (JSON, SVG, PNG, JPG), guardar/cargar local, importar y GitHub.</li>
                     <li><b>❓ Ayuda:</b> Muestra esta ventana.</li>
-                    <li><b>✋ Desplazar:</b> Activa/desactiva el modo de desplazamiento del canvas (especialmente útil en móviles/tablets).</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🧱 Clema</h3>
                 <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
                     <li>Las <b>clemas</b> son bloques rectangulares con puntos de conexión arriba y abajo.</li>
                     <li><b>Botones + / −</b> en cada extremo de la clema para añadir o quitar bloques.</li>
-                    <li>Los <b>puntos de conexión</b> son visibles y accesibles en dispositivos táctiles (puntos azules).</li>
+                    <li><b>Panel CLEMAS</b> en la barra lateral → color del trazo, relleno, círculos y grosor del borde (1-4).</li>
+                    <li>Las <b>líneas oblicuas</b> de los círculos ajustan su color automáticamente para contrastar con el fondo.</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🔌 Cables</h3>
@@ -794,8 +747,11 @@
                     <li><b>Delete:</b> Elimina cable(s) seleccionado(s).</li>
                     <li><b>Clic derecho</b> sobre un cable → confirmar eliminación.</li>
                     <li><b>Nodos adicionales:</b> <b>Doble clic</b> sobre un cable para añadir un nodo. Los nodos se pueden arrastrar y sus tiradores blancos permiten deformar la curvatura. <b>Clic derecho</b> sobre un nodo para eliminarlo.</li>
+                    <li>Todos los cables tienen forma de <b>senoide</b>. Los cables entre clemas distintas tienen una curvatura más pronunciada.</li>
                     <li>Un cable que pasa sobre la clema se muestra <b>semitransparente</b> en esa zona.</li>
                     <li>No se permite crear un cable entre dos puntos de la <b>misma clema</b>.</li>
+                    <li><b>Efecto imán:</b> Al arrastrar un cable cerca de un punto de conexión de clema (dentro de ~40px), el cable es atraído visualmente hacia ese punto, facilitando la conexión precisa.</li>
+                    <li><b>Z:</b> Auto-cableado — traza cables desde los terminales de los componentes seleccionados (o todos si no hay selección) a los puntos de anclaje centrales de las clemas más cercanas. Cada componente recibe un color distinto para sus cables.</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🔩 Componentes</h3>
@@ -819,10 +775,12 @@
                 </table>
                 <ul style="margin:0 0 1rem 1.2rem;line-height:1.7;">
                     <li>Los componentes se pueden <b>arrastrar</b> libremente por el lienzo.</li>
+                    <li><b>Arrastre múltiple:</b> Si hay varios componentes seleccionados (con Shift+clic o cuadro de selección), al arrastrar uno se mueven todos juntos.</li>
                     <li><b>Clic derecho</b> sobre un componente → Editar, Invertir, Duplicar, Alinear, Eliminar.</li>
-                    <li><b>Shift+clic</b> para seleccionar varios componentes.</li>
-                    <li><b>A:</b> Alinea horizontalmente los componentes seleccionados (mínimo 2).</li>
-                    <li><b>Delete:</b> Elimina componente seleccionado.</li>
+                    <li><b>Shift+clic</b> sobre componentes para seleccionar varios. La selección previa se mantiene al añadir nuevos objetos con Shift.</li>
+                    <li><b>Cuadro de selección:</b> Arrastrar en espacio vacío para seleccionar elementos.</li>
+                    <li><b>A:</b> Alinea los componentes seleccionados (mínimo 2) a 60px del borde de la clema (arriba o abajo según mayoría). Cada componente se centra en las clemas libres consecutivas que necesite según sus terminales (2 terminales = 2 clemas, 3 = 3 clemas). Si no hay clemas suficientes, se ofrece añadirlas de golpe. Los cables conectados se ajustan automáticamente.</li>
+                    <li><b>Delete:</b> Elimina componente(s) seleccionado(s).</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">📝 Texto</h3>
@@ -830,38 +788,47 @@
                     <li><b>T:</b> Activa/desactiva el modo texto — clic en el canvas para colocar texto.</li>
                     <li>Botón <b>"Añadir texto"</b> en la barra lateral para colocar etiquetas en el lienzo.</li>
                     <li>Los textos se pueden <b>arrastrar</b> y seleccionar.</li>
+                    <li><b>Doble clic</b> sobre un texto o <b>clic derecho → Editar</b>: abre el mismo diálogo que "Añadir texto", con campos de contenido, tamaño, color del texto y color de fondo.</li>
+                    <li><b>Clic derecho → Eliminar</b>: borra el texto seleccionado (con confirmación).</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🖱️ Navegación (Ratón)</h3>
                 <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
-                    <li><b>Shift+clic + arrastrar</b> en espacio vacío: desplaza el lienzo (pan).</li>
                     <li><b>Rueda del ratón:</b> Zoom.</li>
-                    <li><b>H:</b> Centra la vista en las clemas.</li>
-                    <li><b>Redimensionar canvas:</b> Sliders en la barra lateral para ancho y alto del lienzo.</li>
+                    <li><b>Shift+clic + arrastrar</b> en espacio vacío: desplaza el lienzo (pan).</li>
+                    <li><b>H:</b> Centra la vista en las clemas (resetea el zoom).</li>
+                    <li><b>Flechas:</b> Mueve componentes seleccionados (2px normal, 10px con Shift).</li>
+                    <li><b>Escape:</b> Cancela dibujo de cable o modo texto; cierra diálogos abiertos.</li>
                 </ul>
 
-                <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">📱 Dispositivos táctiles (móvil y tablet)</h3>
+                <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">📂 Barra lateral (Acordeones)</h3>
                 <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
-                    <li><b>Toque simple:</b> Equivale a un clic — seleccionar elementos, iniciar/finalizar cables, y activar acciones.</li>
-                    <li><b>Arrastrar con 1 dedo:</b> Mueve cables, componentes y textos por el lienzo.</li>
-                    <li><b>Doble toque:</b> Toca dos veces rápidamente sobre un cable para añadir un nodo de edición.</li>
-                    <li><b>Pulsación larga (~0.5s):</b> Mantén pulsado sobre un componente para abrir el menú contextual (Editar, Invertir, Duplicar, Alinear, Eliminar).</li>
-                    <li><b>Pellizco (2 dedos):</b> Acerca o aleja los dedos para hacer zoom in/out.</li>
-                    <li><b>Desplazar el canvas:</b> Toca y arrastra verticalmente en un <b>espacio vacío</b> del canvas para hacer scroll. También puedes usar el botón <b>✋ Desplazar</b> en la barra superior para activar el modo de paneo explícito (arrastra libremente el canvas en cualquier dirección).</li>
-                    <li><b>✋ Desplazar (botón):</b> Al activarlo, el botón cambia a <b>"✋ Desplazando..."</b> y cualquier toque/arrastre en el canvas lo desplazará. Tócalo de nuevo para desactivarlo y volver al modo normal.</li>
-                    <li><b>Puntos de conexión visibles:</b> Los puntos de conexión de las clemas son <b>siempre visibles</b> (puntos azules) y más grandes en dispositivos táctiles para facilitar la conexión.</li>
-                    <li><b>Terminales de componentes visibles:</b> Los terminales de los componentes también son visibles y más fáciles de tocar.</li>
-                    <li><b>Tiradores de cables más grandes:</b> Los puntos de control de los cables y nodos tienen un tamaño aumentado para facilitar su manipulación.</li>
-                    <li><b>Menú lateral:</b> En pantallas pequeñas, el botón <b>☰ Menú</b> abre un panel deslizante con todas las herramientas. Se cierra automáticamente al colocar un componente o pulsando la <b>×</b>.</li>
-                    <li>Los botones y selectores están dimensionados con un <b>mínimo de 44px</b> para facilitar la pulsación.</li>
-                    <li><b>Selección múltiple:</b> Toque sobre un elemento ya seleccionado para añadirlo/quitarlo de la selección (similar a Shift+clic en escritorio).</li>
+                    <li><b>🔌 CABLES:</b> Color y grosor de los cables. Los controles se despliegan debajo del botón correspondiente.</li>
+                    <li><b>🧱 CLEMAS:</b> Color del trazo, relleno de la clema, color de los círculos y grosor del borde (1-4). Las líneas diagonales de los círculos se oscurecen/aclara automáticamente para garantizar contraste.</li>
+                    <li><b>🖼️ LIENZO:</b> Color de fondo y tamaño del lienzo (ancho/alto con botones +/−).</li>
+                    <li><b>🗑️ LIMPIAR:</b> Botones para borrar todos los cables o todos los textos de golpe.</li>
+                </ul>
+
+                <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">☁️ GitHub — Token de acceso</h3>
+                <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
+                    <li><b>💾 Guardar token:</b> Pulsando el botón junto al campo de token, se guarda en el navegador para sesiones futuras.</li>
+                    <li><b>Auto-guardado:</b> El token se guarda automáticamente cuando se carga desde un archivo o cuando se guarda correctamente en GitHub.</li>
+                    <li><b>Recuperación automática:</b> Al iniciar la aplicación, el token guardado se rellena automáticamente en ambos diálogos de GitHub.</li>
+                    <li><b>📄 Token:</b> Carga el token desde un archivo de texto externo (como respaldo).</li>
                 </ul>
 
                 <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">🎨 Colores y grosor</h3>
                 <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
-                    <li><b>Paleta de colores</b> en la barra lateral para elegir el color del próximo cable.</li>
-                    <li><b>Selector de grosor</b> (stroke width) para el siguiente cable.</li>
+                    <li>Los ajustes de color y grosor se organizan en los acordeones de la barra lateral (CABLES y CLEMAS).</li>
+                    <li><b>Grosor inicial por defecto:</b> 3 (tanto para cables como para bordes de clemas).</li>
                     <li>Se pueden cambiar el color y grosor de cables existentes seleccionándolos.</li>
+                    <li>Los componentes alineados con <b>A</b> o <b>Clic derecho → Alinear</b> se centran en las clemas libres según sus terminales y se colocan a 60px del borde de la clema.</li>
+                </ul>
+
+                <h3 style="color:var(--primary);border-bottom:1px solid var(--gray-200);padding-bottom:4px;">💾 Guardado y cierre</h3>
+                <ul style="margin:0.5rem 0 1rem 1.2rem;line-height:1.7;">
+                    <li>Si hay cambios sin guardar al intentar cerrar la pestaña, el navegador mostrará un aviso de confirmación.</li>
+                    <li>Se recomienda guardar en <b>local</b> o en <b>GitHub</b> antes de cerrar para evitar perder el trabajo.</li>
                 </ul>
             </div>
         </div>
@@ -883,18 +850,29 @@
         selectedTexts: new Set(),
         selectedText: null,
         selectedColor: '#dc2626',
-        selectedStrokeWidth: 2.5,
+        selectedStrokeWidth: 3,
         canvasBgColor: '#ffffff',
         canvasWidthScale: 1,
         canvasHeightScale: 1,
+        // Clema settings
+        clemaStrokeColor: '#92400e',
+        clemaStrokeWidth: 3,
+        clemaFillColor: '#fef3c7',
+        clemaCircleColor: '#c4a96e',
+        // Unsaved changes tracking
+        hasUnsavedChanges: false,
+        // Pan state
+        isPanning: false,
+        panStart: null,
+        panViewBoxStart: null,
         isDrawing: false,
         drawingStart: null,
         drawingStartType: null, // 'clema' or 'canvas'
+        lastCanvasClick: null, // Last click position on canvas area for W wire placement
         textMode: false,
         dragging: null,
         dragStartHandle: null, // for two-handle editing
         draggingLabel: null, // for component label dragging
-        draggingLabelCompIndex: null,
         selectionBox: null, // for marquee selection
         selectionStart: null,
         justMadeSelection: false, // flag to prevent onClick clearing selection
@@ -915,14 +893,12 @@
         selectedComponent: null,
         draggingComponent: null,
         dragComponentOffset: null,
-        // Pan state
-        isPanning: false,
-        panMode: false, // Touch-friendly pan mode toggle
-        panStart: null,
-        panViewBoxStart: null,
         // Double click detection for wire nodes
         _wireDblClick: null,
     };
+
+    // GitHub token localStorage key
+    const GH_TOKEN_KEY = 'clemas_v2_github_token';
 
     const COLORS = [
         '#dc2626','#ea580c','#d97706','#ca8a04','#65a30d',
@@ -954,7 +930,7 @@
     // INITIALIZATION
     // ============================================================
     // Preload all component PNGs as base64 at startup
-    // Uses __PNG_CACHE__ if available (embedded by embed-pngs.html), otherwise loads via <img>
+    // Uses __PNG_CACHE__ if available (embedded by embed-pngs.html)
 
 // Preloaded PNG cache — auto-generated by embed-pngs.html
 // Paste this BEFORE the APP declaration in index.html
@@ -1025,6 +1001,15 @@ const __PNG_CACHE__ = {
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Auto-load saved GitHub token
+        const savedToken = localStorage.getItem(GH_TOKEN_KEY);
+        if (savedToken) {
+            const ghTokenEl = document.getElementById('ghToken');
+            const ghLoadTokenEl = document.getElementById('ghLoadToken');
+            if (ghTokenEl) ghTokenEl.value = savedToken;
+            if (ghLoadTokenEl) ghLoadTokenEl.value = savedToken;
+        }
+
         preloadPngs().then(() => {
             initSidebar();
             setupEventListeners();
@@ -1077,25 +1062,29 @@ const __PNG_CACHE__ = {
     function initSidebar() {
         const sidebar = document.getElementById('sidebar');
 
-        // Add close button for mobile
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'sidebar-close-btn';
-        closeBtn.innerHTML = '&times;';
-        closeBtn.addEventListener('click', () => sidebar.classList.remove('open'));
-        sidebar.appendChild(closeBtn);
-
-        // Color of wires section (accordion)
-        const wireColorSection = document.createElement('div');
-        wireColorSection.className = 'sidebar-section';
-        wireColorSection.innerHTML = `
-            <button class="sidebar-accordion">🎨 Color de los cables ▸</button>
+        // CABLES accordion
+        const cablesSection = document.createElement('div');
+        cablesSection.className = 'sidebar-section';
+        cablesSection.innerHTML = `
+            <button class="sidebar-accordion">🔌 CABLES ▸</button>
             <div class="sidebar-accordion-content">
-                <div class="color-palette" id="sidebarPalette" style="display:flex;gap:0.25rem;flex-wrap:wrap;padding:0.375rem;background:var(--gray-50);border-radius:0.375rem;border:1px solid var(--gray-200);"></div>
-                <input type="color" id="customColor" value="#2563eb" title="Color personalizado" style="width:28px;height:26px;border:none;cursor:pointer;border-radius:4px;margin-top:0.375rem;">
+                <button class="sidebar-option-btn" data-panel="wireColor">🎨 Color de los cables <span class="arrow">▸</span></button>
+                <div class="sidebar-option-panel" id="panel-wireColor">
+                    <span class="panel-label">Color del cable</span>
+                    <div class="color-palette" id="sidebarPalette" style="display:flex;gap:0.25rem;flex-wrap:wrap;padding:0.375rem;background:var(--gray-50);border-radius:0.375rem;border:1px solid var(--gray-200);"></div>
+                    <input type="color" id="customColor" value="#2563eb" title="Color personalizado" style="width:100%;height:36px;border:1px solid var(--gray-300);cursor:pointer;border-radius:0.25rem;padding:2px;margin-top:0.375rem;">
+                </div>
+                <button class="sidebar-option-btn" data-panel="wireStroke">📏 Grosor de los cables <span class="arrow">▸</span></button>
+                <div class="sidebar-option-panel" id="panel-wireStroke">
+                    <span class="panel-label">Grosor del cable</span>
+                    <input type="range" id="sidebarStrokeWidth" min="1" max="8" step="0.5" value="3">
+                    <div class="panel-value" id="sidebarStrokeValue">3</div>
+                </div>
             </div>
         `;
-        sidebar.appendChild(wireColorSection);
+        sidebar.appendChild(cablesSection);
 
+        // Populate wire color palette
         const sidebarPalette = document.getElementById('sidebarPalette');
         COLORS.forEach((color, i) => {
             const swatch = document.createElement('div');
@@ -1110,42 +1099,38 @@ const __PNG_CACHE__ = {
                 const wireSet = getSelectedWireSet();
                 if (wireSet.size > 0) {
                     saveUndoState();
-                    wireSet.forEach(i => { APP.wires[i].color = color; });
+                    wireSet.forEach(idx => { APP.wires[idx].color = color; });
                     renderWires();
                 }
                 const textSet = getSelectedTextSet();
                 if (textSet.size > 0) {
                     saveUndoState();
-                    textSet.forEach(i => { APP.texts[i].color = color; });
+                    textSet.forEach(idx => { APP.texts[idx].color = color; });
                     renderTexts();
                 }
             });
             sidebarPalette.appendChild(swatch);
         });
 
-        // Stroke width section (accordion)
-        const strokeSection = document.createElement('div');
-        strokeSection.className = 'sidebar-section';
-        strokeSection.innerHTML = `
-            <button class="sidebar-accordion">📏 Grosor de los cables ▸</button>
-            <div class="sidebar-accordion-content">
-                <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <input type="range" id="sidebarStrokeWidth" min="1" max="8" step="0.5" value="2.5" style="width:100%;cursor:pointer;">
-                    <span id="sidebarStrokeValue" style="font-size:.75rem;min-width:24px;text-align:center;">2.5</span>
-                </div>
-            </div>
-        `;
-        sidebar.appendChild(strokeSection);
+        document.getElementById('customColor').addEventListener('input', (e) => {
+            APP.selectedColor = e.target.value;
+            const wireSet = getSelectedWireSet();
+            if (wireSet.size > 0) {
+                saveUndoState();
+                wireSet.forEach(idx => { APP.wires[idx].color = e.target.value; });
+                renderWires();
+            }
+        });
 
+        // Wire stroke width
         document.getElementById('sidebarStrokeWidth').addEventListener('input', (e) => {
             APP.selectedStrokeWidth = parseFloat(e.target.value);
             document.getElementById('sidebarStrokeValue').textContent = e.target.value;
-            // Apply to selected wire(s)
             const set = APP.selectedWireIndices.size > 0
                 ? new Set(APP.selectedWireIndices)
                 : (APP.selectedWire !== null ? new Set([APP.selectedWire]) : new Set());
             if (set.size > 0) {
-                set.forEach(i => { APP.wires[i].strokeWidth = APP.selectedStrokeWidth; });
+                set.forEach(idx => { APP.wires[idx].strokeWidth = APP.selectedStrokeWidth; });
                 renderWires();
             }
         });
@@ -1154,17 +1139,87 @@ const __PNG_CACHE__ = {
             if (hasSel) saveUndoState();
         });
 
-        // Canvas background color section (accordion)
-        const bgSection = document.createElement('div');
-        bgSection.className = 'sidebar-section';
-        bgSection.innerHTML = `
-            <button class="sidebar-accordion">🖼️ Fondo del lienzo ▸</button>
+        // CLEMAS accordion
+        const clemasSection = document.createElement('div');
+        clemasSection.className = 'sidebar-section';
+        clemasSection.innerHTML = `
+            <button class="sidebar-accordion">🧱 CLEMAS ▸</button>
             <div class="sidebar-accordion-content">
-                <div class="color-palette" id="bgPalette" style="display:flex;gap:0.25rem;flex-wrap:wrap;padding:0.375rem;background:var(--gray-50);border-radius:0.375rem;border:1px solid var(--gray-200);"></div>
+                <button class="sidebar-option-btn" data-panel="clemaColor">🎨 Color de las clemas <span class="arrow">▸</span></button>
+                <div class="sidebar-option-panel" id="panel-clemaColor">
+                    <span class="panel-label">Color del trazo</span>
+                    <input type="color" id="clemaStrokeColorPicker" value="#92400e">
+                    <span class="panel-label" style="margin-top:0.5rem;">Color del relleno</span>
+                    <input type="color" id="clemaFillColorPicker" value="#fef3c7">
+                    <span class="panel-label" style="margin-top:0.5rem;">Color de los círculos</span>
+                    <input type="color" id="clemaCircleColorPicker" value="#c4a96e">
+                </div>
+                <button class="sidebar-option-btn" data-panel="clemaStroke">📏 Grosor de las clemas <span class="arrow">▸</span></button>
+                <div class="sidebar-option-panel" id="panel-clemaStroke">
+                    <span class="panel-label">Grosor del borde</span>
+                    <input type="range" id="clemaStrokeWidth" min="1" max="4" step="0.5" value="3">
+                    <div class="panel-value" id="clemaStrokeValue">3</div>
+                </div>
             </div>
         `;
-        sidebar.appendChild(bgSection);
+        sidebar.appendChild(clemasSection);
 
+        // Clema color pickers
+        document.getElementById('clemaStrokeColorPicker').addEventListener('input', (e) => {
+            APP.clemaStrokeColor = e.target.value;
+            saveUndoState();
+            renderClemas();
+        });
+        document.getElementById('clemaFillColorPicker').addEventListener('input', (e) => {
+            APP.clemaFillColor = e.target.value;
+            saveUndoState();
+            renderClemas();
+        });
+        document.getElementById('clemaCircleColorPicker').addEventListener('input', (e) => {
+            APP.clemaCircleColor = e.target.value;
+            saveUndoState();
+            renderClemas();
+        });
+
+        // Clema stroke width
+        document.getElementById('clemaStrokeWidth').addEventListener('input', (e) => {
+            APP.clemaStrokeWidth = parseFloat(e.target.value);
+            document.getElementById('clemaStrokeValue').textContent = e.target.value;
+            saveUndoState();
+            renderClemas();
+        });
+
+        // LIENZO accordion
+        const lienzoSection = document.createElement('div');
+        lienzoSection.className = 'sidebar-section';
+        lienzoSection.innerHTML = `
+            <button class="sidebar-accordion">🖼️ LIENZO ▸</button>
+            <div class="sidebar-accordion-content">
+                <button class="sidebar-option-btn" data-panel="canvasBg">🎨 Fondo del lienzo <span class="arrow">▸</span></button>
+                <div class="sidebar-option-panel" id="panel-canvasBg">
+                    <span class="panel-label">Color de fondo</span>
+                    <div class="color-palette" id="bgPalette" style="display:flex;gap:0.25rem;flex-wrap:wrap;padding:0.375rem;background:var(--gray-50);border-radius:0.375rem;border:1px solid var(--gray-200);"></div>
+                </div>
+                <button class="sidebar-option-btn" data-panel="canvasSize">📐 Tamaño del lienzo <span class="arrow">▸</span></button>
+                <div class="sidebar-option-panel" id="panel-canvasSize">
+                    <span class="panel-label">Anchura</span>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:0.25rem;margin-bottom:0.5rem;">
+                        <button class="btn-secondary canvas-size-btn" data-dir="width" data-action="decrease" style="padding:0.15rem 0.4rem;font-size:0.7rem;line-height:1;">−</button>
+                        <span id="canvasWidthVal" style="font-size:0.7rem;min-width:30px;text-align:center;">100%</span>
+                        <button class="btn-secondary canvas-size-btn" data-dir="width" data-action="increase" style="padding:0.15rem 0.4rem;font-size:0.7rem;line-height:1;">+</button>
+                    </div>
+                    <span class="panel-label">Altura</span>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:0.25rem;">
+                        <button class="btn-secondary canvas-size-btn" data-dir="height" data-action="decrease" style="padding:0.15rem 0.4rem;font-size:0.7rem;line-height:1;">−</button>
+                        <span id="canvasHeightVal" style="font-size:0.7rem;min-width:30px;text-align:center;">100%</span>
+                        <button class="btn-secondary canvas-size-btn" data-dir="height" data-action="increase" style="padding:0.15rem 0.4rem;font-size:0.7rem;line-height:1;">+</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        sidebar.appendChild(lienzoSection);
+
+        // Canvas background color
         const bgPalette = document.getElementById('bgPalette');
         PASTEL_COLORS.forEach((color, i) => {
             const swatch = document.createElement('div');
@@ -1180,48 +1235,8 @@ const __PNG_CACHE__ = {
             bgPalette.appendChild(swatch);
         });
 
-        // Text placement button
-        const textSection = document.createElement('div');
-        textSection.className = 'sidebar-section';
-        textSection.innerHTML = `
-            <div class="sidebar-section-title">Texto</div>
-            <button class="btn-primary" id="sidebarAddText" style="width:100%;font-size:0.85rem;min-height:44px;">📝 + Añadir texto (T)</button>
-        `;
-        sidebar.appendChild(textSection);
-
-        document.getElementById('sidebarAddText').addEventListener('click', () => {
-            if (!APP.svg) { alert('Inicie un proyecto primero.'); return; }
-            const tx = APP.margin + APP.N * APP.b / 2;
-            const ty = APP.rectStartY + APP.rectH + 40;
-            openTextDialogAt(tx, ty);
-        });
-
-        // Canvas size section (accordion)
-        const canvasSizeSection = document.createElement('div');
-        canvasSizeSection.className = 'sidebar-section';
-        canvasSizeSection.innerHTML = `
-            <button class="sidebar-accordion">📐 Tamaño del lienzo ▸</button>
-            <div class="sidebar-accordion-content">
-                <div style="display:flex;flex-direction:column;gap:0.5rem;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:0.25rem;">
-                        <span style="font-size:0.7rem;color:var(--gray-600);">Anchura</span>
-                        <button class="btn-secondary canvas-size-btn" data-dir="width" data-action="decrease" style="padding:0.15rem 0.4rem;font-size:0.7rem;line-height:1;">−</button>
-                        <span id="canvasWidthVal" style="font-size:0.7rem;min-width:30px;text-align:center;">100%</span>
-                        <button class="btn-secondary canvas-size-btn" data-dir="width" data-action="increase" style="padding:0.15rem 0.4rem;font-size:0.7rem;line-height:1;">+</button>
-                    </div>
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:0.25rem;">
-                        <span style="font-size:0.7rem;color:var(--gray-600);">Altura</span>
-                        <button class="btn-secondary canvas-size-btn" data-dir="height" data-action="decrease" style="padding:0.15rem 0.4rem;font-size:0.7rem;line-height:1;">−</button>
-                        <span id="canvasHeightVal" style="font-size:0.7rem;min-width:30px;text-align:center;">100%</span>
-                        <button class="btn-secondary canvas-size-btn" data-dir="height" data-action="increase" style="padding:0.15rem 0.4rem;font-size:0.7rem;line-height:1;">+</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        sidebar.appendChild(canvasSizeSection);
-
-        // Canvas size buttons (AFTER section is appended)
-        canvasSizeSection.querySelectorAll('.canvas-size-btn').forEach(btn => {
+        // Canvas size buttons
+        lienzoSection.querySelectorAll('.canvas-size-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (!APP.svg) return;
                 const dir = btn.dataset.dir;
@@ -1238,19 +1253,36 @@ const __PNG_CACHE__ = {
             });
         });
 
-        // Clear section
-        const clearSection = document.createElement('div');
-        clearSection.className = 'sidebar-section';
-        clearSection.innerHTML = `
-            <div class="sidebar-section-title">Limpiar</div>
-            <button class="btn-danger" id="btnClear" style="width:100%;font-size:0.85rem;min-height:44px;">🗑️ Borrar todos los cables</button>
-            <button class="btn-danger" id="btnClearTexts" style="width:100%;font-size:0.85rem;min-height:44px;">🗑️ Borrar todos los textos</button>
+        // LIMPIAR accordion
+        const limpiarSection = document.createElement('div');
+        limpiarSection.className = 'sidebar-section';
+        limpiarSection.innerHTML = `
+            <button class="sidebar-accordion">🗑️ LIMPIAR ▸</button>
+            <div class="sidebar-accordion-content">
+                <button class="btn-danger" id="btnClear" style="width:100%;font-size:0.85rem;min-height:44px;margin-bottom:0.375rem;">🗑️ Borrar todos los cables</button>
+                <button class="btn-danger" id="btnClearTexts" style="width:100%;font-size:0.85rem;min-height:44px;">🗑️ Borrar todos los textos</button>
+            </div>
         `;
-        sidebar.appendChild(clearSection);
+        sidebar.appendChild(limpiarSection);
 
-        // Clear buttons (now they exist)
         document.getElementById('btnClear').addEventListener('click', clearWires);
         document.getElementById('btnClearTexts').addEventListener('click', clearTexts);
+
+        // Text placement button
+        const textSection = document.createElement('div');
+        textSection.className = 'sidebar-section';
+        textSection.innerHTML = `
+            <div class="sidebar-section-title">Texto</div>
+            <button class="btn-primary" id="sidebarAddText" style="width:100%;font-size:0.85rem;min-height:44px;">📝 + Añadir texto (T)</button>
+        `;
+        sidebar.appendChild(textSection);
+
+        document.getElementById('sidebarAddText').addEventListener('click', () => {
+            if (!APP.svg) { alert('Inicie un proyecto primero.'); return; }
+            const tx = APP.margin + APP.N * APP.b / 2;
+            const ty = APP.rectStartY + APP.rectH + 40;
+            openTextDialogAt(tx, ty);
+        });
 
         // Component library section (collapsible accordion)
         const compSection = document.createElement('div');
@@ -1290,33 +1322,50 @@ const __PNG_CACHE__ = {
                 e.dataTransfer.effectAllowed = 'copy';
             });
             btn.addEventListener('click', () => {
-                // Place component at center of clema block
                 if (!APP.svg) return;
                 const cx = APP.margin + APP.N * APP.b / 2;
                 const cy = APP.rectStartY + APP.rectH + 60;
                 addComponent(def.type, cx, cy);
-                // Close sidebar on mobile after placing
-                if (window.innerWidth <= 768) {
-                    document.getElementById('sidebar').classList.remove('open');
-                }
             });
             compPalette.appendChild(btn);
         });
 
-        // Setup accordion toggles for all sidebar sections
+        // Setup accordion toggles (use data attributes instead of textContent)
         document.querySelectorAll('.sidebar-accordion').forEach(btn => {
             btn.addEventListener('click', () => {
                 const content = btn.nextElementSibling;
                 const isOpen = content.style.display !== 'none';
-                // Close all
                 document.querySelectorAll('.sidebar-accordion-content').forEach(c => c.style.display = 'none');
-                document.querySelectorAll('.sidebar-accordion').forEach(b => {
-                    b.textContent = b.textContent.replace('▾', '▸');
-                });
-                // Open clicked if it was closed
+                document.querySelectorAll('.sidebar-accordion').forEach(b => b.dataset.open = 'false');
                 if (!isOpen) {
                     content.style.display = 'block';
-                    btn.textContent = btn.textContent.replace('▸', '▾');
+                    btn.dataset.open = 'true';
+                }
+            });
+        });
+
+        // Setup expand/collapse option panels
+        document.querySelectorAll('.sidebar-option-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const panelId = 'panel-' + btn.dataset.panel;
+                const panel = document.getElementById(panelId);
+                const isActive = btn.classList.contains('active');
+
+                // Close all option panels
+                document.querySelectorAll('.sidebar-option-panel').forEach(p => p.classList.remove('open'));
+                document.querySelectorAll('.sidebar-option-btn').forEach(b => {
+                    b.classList.remove('active');
+                    const arrow = b.querySelector('.arrow');
+                    if (arrow) arrow.style.transform = '';
+                });
+
+                // Toggle current
+                if (!isActive) {
+                    panel.classList.add('open');
+                    btn.classList.add('active');
+                    const arrow = btn.querySelector('.arrow');
+                    if (arrow) arrow.style.transform = 'rotate(90deg)';
                 }
             });
         });
@@ -1333,6 +1382,20 @@ const __PNG_CACHE__ = {
                !!document.getElementById('compContextMenu');
     }
 
+    // Unsaved changes warning on close
+    window.addEventListener('beforeunload', (e) => {
+        if (APP.hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = 'Tienes cambios sin guardar. ¿Seguro que quieres cerrar?';
+            return e.returnValue;
+        }
+    });
+
+    // Function to mark changes as saved
+    function markAsSaved() {
+        APP.hasUnsavedChanges = false;
+    }
+
     function setupEventListeners() {
         document.getElementById('btnStart').addEventListener('click', startApplication);
         document.getElementById('btnNew').addEventListener('click', () => document.getElementById('newProjectDialog').classList.remove('hidden'));
@@ -1347,26 +1410,6 @@ const __PNG_CACHE__ = {
             if (e.target.id === 'helpModal') document.getElementById('helpModal').classList.add('hidden');
         });
 
-        // Pan mode toggle for touch devices
-        const btnPanMode = document.getElementById('btnPanMode');
-        if (btnPanMode) {
-            btnPanMode.addEventListener('click', () => {
-                APP.panMode = !APP.panMode;
-                btnPanMode.classList.toggle('btn-primary', APP.panMode);
-                btnPanMode.classList.toggle('btn-info', !APP.panMode);
-                btnPanMode.textContent = APP.panMode ? '✋ Desplazando...' : '✋ Desplazar';
-                APP.svg.classList.toggle('panning-available', APP.panMode);
-                setStatus(APP.panMode ? 'Modo desplazar activado - Arrastra para mover el canvas' : 'Modo desplazar desactivado');
-            });
-        }
-
-        // Sidebar toggle for mobile
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('open');
-            });
-        }
         document.getElementById('btnRedo').addEventListener('click', redo);
         // Tools accordion toggle
         document.getElementById('btnToolsToggle').addEventListener('click', () => {
@@ -1394,6 +1437,9 @@ const __PNG_CACHE__ = {
         document.getElementById('btnGhSaveConfirm').addEventListener('click', () => saveToGithub(false));
         document.getElementById('btnGhSaveAsNew').addEventListener('click', () => saveToGithub(true));
         document.getElementById('btnLoadTokenSave').addEventListener('click', () => document.getElementById('hiddenTokenInput').click());
+        // Save token to localStorage buttons
+        document.getElementById('btnSaveToken').addEventListener('click', saveTokenToLocalStorage);
+        document.getElementById('btnSaveTokenLoad').addEventListener('click', saveTokenToLocalStorage);
         document.getElementById('hiddenTokenInput').addEventListener('change', (e) => {
             loadTokenFromFile(e);
             // Re-search after token loads
@@ -1407,6 +1453,7 @@ const __PNG_CACHE__ = {
         document.getElementById('btnGithubLoad').addEventListener('click', () => {
             document.getElementById('githubLoadDialog').classList.remove('hidden');
             document.getElementById('ghFileList').classList.add('hidden');
+            autoFillToken();
         });
         document.getElementById('btnGhLoadCancel').addEventListener('click', () => document.getElementById('githubLoadDialog').classList.add('hidden'));
         document.getElementById('btnGhLoadFiles').addEventListener('click', loadFileListFromGithub);
@@ -1415,6 +1462,7 @@ const __PNG_CACHE__ = {
         document.getElementById('btnAddTextCancel').addEventListener('click', () => {
             document.getElementById('addTextDialog').classList.add('hidden');
             textPlacementPos = null;
+            editingTextIndex = null;
         });
         document.getElementById('btnAddTextConfirm').addEventListener('click', addText);
         // Toggle bg color picker when transparent checked
@@ -1466,6 +1514,11 @@ const __PNG_CACHE__ = {
                     document.getElementById(id).classList.add('hidden');
                 });
             }
+            // 'z' key: auto-wire from selected/aligned components to clema center anchors
+            if ((e.key === 'z' || e.key === 'Z') && !e.ctrlKey && !e.metaKey && !isAnyModalOpen()) {
+                e.preventDefault();
+                autoWireComponents();
+            }
             // Arrow keys: move selected components
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
                 const compIndices = new Set();
@@ -1504,42 +1557,62 @@ const __PNG_CACHE__ = {
                 const cy = APP.rectStartY + APP.rectH + 60;
                 addComponent(compType, cx, cy);
             }
-            // 'w' key: add a free wire (arc) on canvas
+            // 'w' key: add a free wire (arc) on canvas, concave toward clema
             if ((e.key === 'w' || e.key === 'W') && !e.ctrlKey && !e.metaKey && !isAnyModalOpen()) {
                 e.preventDefault();
                 saveUndoState();
-                const totalW = APP.N * APP.b;
-                const cx = APP.margin + totalW / 2;
-                const baseY = APP.rectStartY + APP.rectH + 60;
-                // Create a horizontal arc with two canvas anchor points
-                const halfSpan = totalW * 0.15;
-                const startX = cx - halfSpan;
-                const endX = cx + halfSpan;
-                const dx = endX - startX;
-                const dy = 0;
-                const dist = dx;
-                const offset = Math.max(dist * 0.35, 30);
-                
-                // Wire is below clema, so curve should bulge downward (away from clema)
+
                 const blockCenterY = APP.rectStartY + APP.rectH / 2;
-                // baseY is below blockCenterY, so sign should be -1 (bulge down = positive offset)
-                const sign = baseY > blockCenterY ? -1 : 1;
-                
-                const h1x = startX + dx * 0.3;
-                const h1y = baseY - offset * sign;
-                const h2x = endX - dx * 0.3;
-                const h2y = baseY - offset * sign;
+                const blockLeft = APP.margin;
+                const blockRight = APP.margin + APP.N * APP.b;
+                const blockMidX = (blockLeft + blockRight) / 2;
+
+                // Determine wire position and concavity based on last canvas click
+                let wireY, centerX, bulgeUp;
+
+                if (APP.lastCanvasClick) {
+                    const click = APP.lastCanvasClick;
+                    centerX = click.x;
+
+                    // Determine which side of the clema block the click was on
+                    if (click.y < blockCenterY) {
+                        // Click above clema → wire above, concave DOWN (toward clema)
+                        wireY = click.y;
+                        bulgeUp = true; // bulge toward clema (down)
+                    } else {
+                        // Click below clema → wire below, concave UP (toward clema)
+                        wireY = click.y;
+                        bulgeUp = false; // bulge toward clema (up)
+                    }
+                } else {
+                    // Default: below clema
+                    centerX = blockMidX;
+                    wireY = APP.rectStartY + APP.rectH + 60;
+                    bulgeUp = false;
+                }
+
+                const span = Math.min(APP.N * APP.b * 0.3, 150);
+                const startX = centerX - span;
+                const endX = centerX + span;
+                const dist = endX - startX;
+
+                // Clearly curved arc: handles with strong perpendicular offset
+                const tangentLen = dist * 0.25;
+                const perpOffset = Math.max(dist * 0.8, 40);
 
                 APP.wires.push({
                     id: Date.now(),
                     color: APP.selectedColor,
                     strokeWidth: APP.selectedStrokeWidth,
-                    start: { x: startX, y: baseY, id: `canvas_${Math.round(startX)}_${Math.round(baseY)}` },
-                    end: { x: endX, y: baseY, id: `canvas_${Math.round(endX)}_${Math.round(baseY)}` },
+                    start: { x: startX, y: wireY, id: `canvas_${Math.round(startX)}_${Math.round(wireY)}` },
+                    end: { x: endX, y: wireY, id: `canvas_${Math.round(endX)}_${Math.round(wireY)}` },
                     startType: 'canvas',
                     endType: 'canvas',
-                    isSine: false,
-                    h1x, h1y, h2x, h2y,
+                    isSine: true,
+                    h1x: startX + tangentLen,
+                    h1y: wireY + (bulgeUp ? -perpOffset : perpOffset),
+                    h2x: endX - tangentLen,
+                    h2y: wireY + (bulgeUp ? -perpOffset : perpOffset),
                 });
                 renderWires();
                 setStatus('Cable añadido. Puedes arrastrarlo haciendo clic y arrastrando sobre él.');
@@ -1551,42 +1624,8 @@ const __PNG_CACHE__ = {
             }
             // 'a' key: align selected objects horizontally to the average Y
             if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey && !isAnyModalOpen()) {
-                const compIndices = new Set();
-                APP.selectedWireIndices.forEach(idx => {
-                    if (idx < 0) compIndices.add(-idx - 1);
-                });
-                if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
-
-                if (compIndices.size >= 2) {
-                    e.preventDefault();
-                    saveUndoState();
-                    const indices = [...compIndices];
-                    const avgY = indices.reduce((sum, i) => sum + APP.components[i].y, 0) / indices.length;
-
-                    // Sort by X and redistribute to avoid overlap
-                    const sorted = indices.map(i => ({
-                        idx: i,
-                        comp: APP.components[i],
-                        dims: getComponentDimensions(APP.components[i].type),
-                    })).sort((a, b) => a.comp.x - b.comp.x);
-
-                    const gap = 15;
-                    // Place first at its X, then each next at least prev_right + gap
-                    let nextX = sorted[0].comp.x - sorted[0].dims.w / 2;
-                    sorted.forEach((item) => {
-                        item.comp.y = avgY;
-                        const halfW = item.dims.w / 2;
-                        const centerX = nextX + halfW;
-                        if (centerX > item.comp.x - halfW) {
-                            item.comp.x = centerX;
-                        }
-                        nextX = item.comp.x + halfW + gap;
-                    });
-
-                    renderComponents();
-                    renderWires();
-                    setStatus(`${indices.length} componentes alineados horizontalmente (Y=${avgY.toFixed(0)})`);
-                }
+                e.preventDefault();
+                alignSelectedComponents();
             }
             // Delete key → remove selected component(s), wire(s), text(s)
             if (e.key === 'Delete') {
@@ -1632,32 +1671,7 @@ const __PNG_CACHE__ = {
                 if (!confirm(confirmMsg)) return;
 
                 saveUndoState();
-
-                // Delete components (in reverse order)
-                [...compIndices].sort((a, b) => b - a).forEach(ci => {
-                    APP.wires = APP.wires.filter(w =>
-                        !w.start.id.startsWith(`comp_${ci}_`) && !w.end.id.startsWith(`comp_${ci}_`)
-                    );
-                    APP.components.splice(ci, 1);
-                });
-
-                // Delete wires
-                [...wireSet].sort((a, b) => b - a).forEach(i => APP.wires.splice(i, 1));
-
-                // Delete texts
-                [...textSet].sort((a, b) => b - a).forEach(i => APP.texts.splice(i, 1));
-
-                // Clear selections
-                APP.selectedComponent = null;
-                APP.selectedWire = null;
-                APP.selectedWireIndices.clear();
-                APP.selectedText = null;
-                APP.selectedTexts.clear();
-
-                renderComponents();
-                renderWires();
-                renderTexts();
-                setStatus(`${totalSelected} elemento(s) eliminado(s)`);
+                deleteSelectedItems();
             }
             // '0'-'9' keys: change selected wire color (IEC standard color code)
             const wireColorMap = {
@@ -1705,8 +1719,8 @@ const __PNG_CACHE__ = {
         APP.selectedComponent = null;
         APP.draggingComponent = null;
         APP.dragComponentOffset = null;
+        APP._draggingComponents = null;
         APP.draggingLabel = null;
-        APP.draggingLabelCompIndex = null;
         APP.dragLabelOffset = null;
         APP._zoomScale = 1;
         APP._clemaLineAngles = null; // Reset random angles
@@ -1718,11 +1732,17 @@ const __PNG_CACHE__ = {
         APP.selectedTexts.clear();
         APP.selectedWire = null;
         APP.selectedText = null;
+        editingTextIndex = null;
         APP.canvasWidthScale = 1;
         APP.canvasHeightScale = 1;
+        APP.clemaStrokeColor = '#92400e';
+        APP.clemaStrokeWidth = 3;
+        APP.clemaFillColor = '#fef3c7';
+        APP.clemaCircleColor = '#c4a96e';
         APP.isDrawing = false;
         APP.drawingStart = null;
         APP.drawingStartType = null;
+        APP.hasUnsavedChanges = false;
 
         // Clear SVG
         const svg = document.getElementById('mainSvg');
@@ -1901,19 +1921,30 @@ const __PNG_CACHE__ = {
         const sideExtra = Math.max(btnSize * 5, 40);
         const padding = Math.max(APP.margin + sideExtra, 60);
 
-        const svgWidth = APP.svgWidth;
-        const viewBoxX = -padding + APP.margin;
+        // Recalculate base width (don't use APP.svgWidth which may be modified by zoom)
+        const svgWidth = totalW + 2 * padding;
+        APP._zoomScale = 1; // Reset zoom
 
+        // Clema block spans from margin to margin+totalW, center = margin + totalW/2
+        // viewBox spans from (margin-padding) to (margin+totalW+padding), center = margin + totalW/2
+        // So the clema block is already centered horizontally in this viewBox
+        const viewBoxX = APP.margin - padding;
+
+        // Center vertically: clema block should be in the middle of the visible area
         const clemaCenterY = APP.rectStartY + APP.rectH / 2;
         const visibleCenterY = totalH / 2;
         const viewBoxY = clemaCenterY - visibleCenterY;
 
         APP.svg.setAttribute('viewBox', `${viewBoxX} ${viewBoxY} ${svgWidth} ${totalH}`);
+        APP.svgWidth = svgWidth;
+        APP.svgHeight = totalH;
 
         // Update background rect position
         if (APP.bgRect) {
             APP.bgRect.setAttribute('x', viewBoxX);
             APP.bgRect.setAttribute('y', viewBoxY);
+            APP.bgRect.setAttribute('width', svgWidth);
+            APP.bgRect.setAttribute('height', totalH);
         }
 
         // Update clema clip path
@@ -1974,14 +2005,48 @@ const __PNG_CACHE__ = {
             }
         }
 
+        // Auto-calculate contrasting colors for circles and lines
+        const fillColor = APP.clemaFillColor;
+        const strokeColor = APP.clemaStrokeColor;
+        const circleColor = APP.clemaCircleColor;
+        const strokeWidth = APP.clemaStrokeWidth;
+
+        // Calculate circle fill: slightly darker than clema fill
+        function darkenColor(hex, amount) {
+            let r = parseInt(hex.slice(1, 3), 16);
+            let g = parseInt(hex.slice(3, 5), 16);
+            let b = parseInt(hex.slice(5, 7), 16);
+            r = Math.max(0, Math.min(255, r - amount));
+            g = Math.max(0, Math.min(255, g - amount));
+            b = Math.max(0, Math.min(255, b - amount));
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+        const effectiveCircleColor = darkenColor(fillColor, 60);
+
+        // Calculate contrasting color for diagonal lines (auto-contrast)
+        function getContrastingColor(hexColor) {
+            // Parse hex to RGB
+            const r = parseInt(hexColor.slice(1, 3), 16);
+            const g = parseInt(hexColor.slice(3, 5), 16);
+            const b = parseInt(hexColor.slice(5, 7), 16);
+            // Relative luminance (per WCAG 2.0)
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            // If circle is dark, use white line; if light, use dark line
+            return luminance > 0.5 ? '#1f2937' : '#ffffff';
+        }
+        const lineColor = getContrastingColor(effectiveCircleColor);
+
         for (let i = 0; i < N; i++) {
             const x = margin + i * b;
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             g.classList.add('clema');
             g.dataset.clemaIndex = i;
 
-            // Rectangle
-            const rect = el('rect', { x, y: rectStartY, width: b, height: rectH, class: 'clema-rect' });
+            // Rectangle - use style directly to override CSS
+            const rect = el('rect', { x, y: rectStartY, width: b, height: rectH });
+            rect.style.fill = fillColor;
+            rect.style.stroke = strokeColor;
+            rect.style.strokeWidth = strokeWidth + 'px';
             g.appendChild(rect);
 
             // Two circles: centered horizontally in the segment (b/2), vertically at 1/4 and 3/4 of height
@@ -1992,15 +2057,21 @@ const __PNG_CACHE__ = {
             const cy2 = rectStartY + 3 * rectH / 4;
 
             [{ cx, cy: cy1, idx: i * 2 }, { cx, cy: cy2, idx: i * 2 + 1 }].forEach(pos => {
-                g.appendChild(el('circle', { cx: pos.cx, cy: pos.cy, r, class: 'clema-circle' }));
+                const circle = el('circle', { cx: pos.cx, cy: pos.cy, r });
+                circle.style.fill = effectiveCircleColor;
+                circle.style.stroke = strokeColor;
+                circle.style.strokeWidth = strokeWidth + 'px';
+                g.appendChild(circle);
                 // Random angle line fully inside the circle (length = diameter)
                 const angle = (APP._clemaLineAngles[pos.idx] || 60) * Math.PI / 180;
                 const len = r * 1.8;
-                g.appendChild(el('line', {
+                const line = el('line', {
                     x1: pos.cx - (len/2) * Math.cos(angle), y1: pos.cy - (len/2) * Math.sin(angle),
                     x2: pos.cx + (len/2) * Math.cos(angle), y2: pos.cy + (len/2) * Math.sin(angle),
-                    class: 'clema-line'
-                }));
+                });
+                line.style.stroke = lineColor;
+                line.style.strokeWidth = (strokeWidth + 0.5) + 'px';
+                g.appendChild(line);
             });
 
             APP.clemaGroup.appendChild(g);
@@ -2357,23 +2428,8 @@ const __PNG_CACHE__ = {
         svg.addEventListener('dblclick', onDblClick);
         svg.addEventListener('contextmenu', onContextMenu);
 
-        // Enhanced touch handlers are registered separately (see below)
-
         // Zoom with mouse wheel
         svg.addEventListener('wheel', onWheelZoom, { passive: false });
-
-        // Show pan cursor when Shift is held
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Shift' && !APP.isDrawing && !APP.dragging && APP.draggingComponent === null) {
-                svg.classList.add('panning-available');
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'Shift') {
-                svg.classList.remove('panning-available');
-            }
-        });
     }
 
     function onWheelZoom(e) {
@@ -2459,6 +2515,13 @@ const __PNG_CACHE__ = {
                 // Multi-select toggle
                 APP.selectedWire = null;
                 APP.selectedWireIndices.clear();
+                
+                // Migrate existing single selection to multi-select set
+                if (APP.selectedText !== null) {
+                    APP.selectedTexts.add(APP.selectedText);
+                    APP.selectedText = null;
+                }
+                
                 if (APP.selectedTexts.has(idx)) APP.selectedTexts.delete(idx);
                 else APP.selectedTexts.add(idx);
             } else if (APP.selectedText === idx || APP.selectedTexts.has(idx)) {
@@ -2481,6 +2544,13 @@ const __PNG_CACHE__ = {
                 // Multi-select toggle
                 APP.selectedText = null;
                 APP.selectedTexts.clear();
+                
+                // Migrate existing single selection to multi-select set
+                if (APP.selectedWire !== null) {
+                    APP.selectedWireIndices.add(APP.selectedWire);
+                    APP.selectedWire = null;
+                }
+                
                 if (APP.selectedWireIndices.has(idx)) APP.selectedWireIndices.delete(idx);
                 else APP.selectedWireIndices.add(idx);
                 // Sync primary selection for slider
@@ -2512,14 +2582,22 @@ const __PNG_CACHE__ = {
             const g = t.classList.contains('component-group') ? t : t.closest('.component-group');
             const ci = +g.dataset.componentIndex;
             if (e.shiftKey) {
-                if (APP.selectedComponent === ci) APP.selectedComponent = null;
-                else APP.selectedComponent = ci;
+                // Multi-select: use selectedWireIndices with negative indices
+                const negIdx = -ci - 1;
+                
+                // Migrate existing single selection to multi-select set
+                if (APP.selectedComponent !== null) {
+                    APP.selectedWireIndices.add(-APP.selectedComponent - 1);
+                    APP.selectedComponent = null;
+                }
+                
+                if (APP.selectedWireIndices.has(negIdx)) APP.selectedWireIndices.delete(negIdx);
+                else APP.selectedWireIndices.add(negIdx);
             } else {
-                if (APP.selectedComponent === ci) APP.selectedComponent = null;
-                else APP.selectedComponent = ci;
+                APP.selectedComponent = APP.selectedComponent === ci ? null : ci;
+                APP.selectedWireIndices.clear();
             }
             APP.selectedWire = null;
-            APP.selectedWireIndices.clear();
             APP.selectedText = null;
             APP.selectedTexts.clear();
             renderComponents();
@@ -2556,6 +2634,7 @@ const __PNG_CACHE__ = {
         // Handle canvas area click (start or end wire)
         if (isInCanvasArea(c.x, c.y)) {
             const id = `canvas_${Math.round(c.x)}_${Math.round(c.y)}`;
+            APP.lastCanvasClick = { x: c.x, y: c.y };
             handleWireEnd(c.x, c.y, id, 'canvas');
         } else if (APP.isDrawing) {
             // Clicked inside clema area while drawing — cancel
@@ -2569,6 +2648,18 @@ const __PNG_CACHE__ = {
 
     function onDblClick(e) {
         const t = e.target;
+
+        // Text double-click → edit text
+        if (t.classList.contains('text-element') || t.closest('.text-box')) {
+            const box = t.classList.contains('text-box') ? t : t.closest('.text-box');
+            const ti = +box.dataset.textIndex;
+            if (!isNaN(ti) && ti >= 0 && ti < APP.texts.length) {
+                e.preventDefault();
+                e.stopPropagation();
+                editText(ti);
+                return;
+            }
+        }
 
         // Wire double-click → add node
         const isWireEl = t.classList.contains('wire-path') || t.classList.contains('wire-path-hit-area');
@@ -2717,6 +2808,351 @@ const __PNG_CACHE__ = {
         setStatus(`${compIndices.size + wireIndices.length + textIndices.length} elemento(s) eliminado(s)`);
     }
 
+    // ============================================================
+    // AUTO-WIRE: Connect selected components to clema center anchors
+    // ============================================================
+    function autoWireComponents() {
+        // Determine which components to auto-wire
+        const compIndices = new Set();
+        APP.selectedWireIndices.forEach(idx => {
+            if (idx < 0) compIndices.add(-idx - 1);
+        });
+        if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
+
+        // If nothing selected, wire ALL components
+        const targetIndices = compIndices.size > 0 ? [...compIndices] : APP.components.map((_, i) => i);
+
+        // Generate unique colors for each component
+        const palette = [
+            '#dc2626', '#2563eb', '#16a34a', '#d97706', '#7c3aed',
+            '#0891b2', '#be185d', '#65a30d', '#ea580c', '#4f46e5',
+            '#0d9488', '#c026d9', '#e11d48', '#0284c7', '#15803d',
+            '#9333ea', '#ca8a04', '#4338ca', '#059669', '#e879f9'
+        ];
+
+        let wiresAdded = 0;
+        
+        // Track ALL truly occupied clema points across the entire board
+        const occupiedPoints = new Set();
+        APP.wires.forEach(w => {
+            if (w.start.id && (w.start.id.startsWith('t') || w.start.id.startsWith('b'))) occupiedPoints.add(w.start.id);
+            if (w.end.id && (w.end.id.startsWith('t') || w.end.id.startsWith('b'))) occupiedPoints.add(w.end.id);
+        });
+
+        targetIndices.forEach((ci, idx) => {
+            const comp = APP.components[ci];
+            const terminals = getComponentAbsoluteTerminals(comp);
+            const wireColor = palette[idx % palette.length];
+
+            terminals.forEach(term => {
+                // Determine which side the terminal faces
+                const blockCenterY = APP.rectStartY + APP.rectH / 2;
+                const terminalWorldY = comp.y + term.y;
+                const facesTop = terminalWorldY < blockCenterY;
+
+                // Sort ALL clemas by distance to this terminal to find the best available one
+                const clemaRanking = [];
+                for (let c = 0; c < APP.N; c++) {
+                    const clemaCenterX = APP.margin + c * APP.b + APP.b / 2;
+                    clemaRanking.push({ index: c, dist: Math.abs(clemaCenterX - term.x) });
+                }
+                clemaRanking.sort((a, b) => a.dist - b.dist);
+
+                const numAnchors = getAnchorsPerSide();
+                const centerIdx = Math.floor(numAnchors / 2);
+                const anchorOrder = [centerIdx];
+                for (let offset = 1; offset < numAnchors; offset++) {
+                    if (centerIdx - offset >= 0) anchorOrder.push(centerIdx - offset);
+                    if (centerIdx + offset < numAnchors) anchorOrder.push(centerIdx + offset);
+                }
+
+                let foundPoint = null;
+                for (const clemaData of clemaRanking) {
+                    const cIdx = clemaData.index;
+                    for (const anchorIdx of anchorOrder) {
+                        const sideStr = facesTop ? 't' : 'b';
+                        const pointId = `${sideStr}${cIdx}_${anchorIdx}`;
+                        
+                        if (!occupiedPoints.has(pointId)) {
+                            foundPoint = pointId;
+                            break;
+                        }
+                    }
+                    if (foundPoint) break;
+                }
+
+                if (!foundPoint) return;
+
+                // Find the actual connection point coordinates
+                const connPts = getConnectionPoints();
+                const targetPt = connPts.find(pt => pt.id === foundPoint);
+                if (!targetPt) return;
+
+                // Create the wire with diversified path to prevent overlap
+                const dx = targetPt.x - term.x;
+                const dy = targetPt.y - term.y;
+                const dist = Math.hypot(dx, dy);
+                const dirX = dx / dist;
+                const dirY = dy / dist;
+                const tangentLen = dist * 0.35;
+
+                // Determine terminal role for path biasing
+                const sortedByX = [...terminals].sort((a, b) => a.x - b.x);
+                const termRoleIndex = sortedByX.findIndex(t => t.id === term.id);
+                const isCenter3 = terminals.length === 3 && termRoleIndex === 1;
+                const isLeftmost = termRoleIndex === 0;
+
+                let h1x, h1y, h2x, h2y;
+                if (isCenter3) {
+                    // Terminal central: curva muy suave, casi recta
+                    const gentleOffset = Math.max(dist * 0.04, 4);
+                    const wireMidY2 = (term.y + targetPt.y) / 2;
+                    const gSign = wireMidY2 < APP.rectStartY + APP.rectH / 2 ? -1 : 1;
+                    h1x = term.x + dirX * tangentLen + (-dirY) * gentleOffset * gSign;
+                    h1y = term.y + dirY * tangentLen +   dirX  * gentleOffset * gSign;
+                    h2x = targetPt.x - dirX * tangentLen + (-dirY) * gentleOffset * gSign;
+                    h2y = targetPt.y - dirY * tangentLen +   dirX  * gentleOffset * gSign;
+                } else {
+                    // Terminales laterales: la curvatura se basa en la separación HORIZONTAL
+                    // entre el terminal y la clema destino (|dx|), no en la distancia total.
+                    // Esto garantiza que cables de clemas adyacentes no se solapen: un cable
+                    // casi vertical tiene |dx| pequeño → bulge pequeño → no invade la clema vecina.
+                    const absDx = Math.abs(dx);
+                    // Escalamos |dx| y lo limitamos a la mitad del ancho de una clema
+                    const maxBulge = APP.b * 0.45;
+                    const perpOffset = Math.min(Math.max(absDx * 0.55, 12), maxBulge);
+                    const lateralSign = isLeftmost ? -1 : 1;
+
+                    h1x = term.x     + dirX * tangentLen + lateralSign * perpOffset;
+                    h1y = term.y     + dirY * tangentLen;
+                    h2x = targetPt.x - dirX * tangentLen + lateralSign * perpOffset;
+                    h2y = targetPt.y - dirY * tangentLen;
+                }
+
+                APP.wires.push({
+                    id: Date.now() + Math.random(),
+                    color: wireColor,
+                    strokeWidth: 2.5,
+                    start: { x: term.x, y: term.y, id: `comp_${ci}_${term.id}` },
+                    end: { x: targetPt.x, y: targetPt.y, id: targetPt.id },
+                    startType: 'component',
+                    endType: 'clema',
+                    isSine: true,
+                    h1x, h1y, h2x, h2y
+                });
+
+                occupiedPoints.add(foundPoint);
+                wiresAdded++;
+            });
+        });
+
+        renderWires();
+        if (wiresAdded > 0) {
+            setStatus(`${wiresAdded} cable(s) conectado(s) automáticamente sin solapamientos.`);
+            saveUndoState();
+        } else {
+            setStatus('No se pudieron conectar cables automáticamente (puntos insuficientes)');
+        }
+    }
+
+    function alignSelectedComponents() {
+        const compIndices = new Set();
+        APP.selectedWireIndices.forEach(idx => {
+            if (idx < 0) compIndices.add(-idx - 1);
+        });
+        if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
+
+        if (compIndices.size < 2) {
+            alert('Selecciona al menos 2 componentes para alinear.\n\nUsa Shift+clic sobre componentes o cuadro de selección.');
+            return false;
+        }
+
+        const indices = [...compIndices];
+        const ALIGN_OFFSET = 60; // px from clema edge
+
+        // Determine if most components are above or below the clema
+        const clemaTop = APP.rectStartY;
+        const clemaBottom = APP.rectStartY + APP.rectH;
+        let aboveCount = 0, belowCount = 0;
+        indices.forEach(ci => {
+            const comp = APP.components[ci];
+            const halfH = getComponentDimensions(comp.type).h / 2;
+            if (comp.y + halfH <= clemaTop) aboveCount++;
+            else belowCount++;
+        });
+        const placeAbove = aboveCount >= belowCount;
+
+        // For each component: determine required consecutive clema blocks
+        // Components with N terminals need N consecutive clema blocks
+        function getTerminalCount(type) {
+            return getComponentTerminals(type).length;
+        }
+
+        // Find which clema indices are "busy" (have a component wire connected)
+        const busyClemaIndices = new Set();
+        APP.wires.forEach(w => {
+            ['start', 'end'].forEach(ep => {
+                if (w[ep].id && w[ep].id.startsWith('clema_')) {
+                    const match = w[ep].id.match(/clema_(\d+)_/);
+                    if (match) busyClemaIndices.add(parseInt(match[1]));
+                }
+            });
+        });
+
+        // Build component info with terminal count
+        const compInfo = indices.map(ci => {
+            const comp = APP.components[ci];
+            const termCount = getTerminalCount(comp.type);
+            return { ci, comp, termCount, dims: getComponentDimensions(comp.type) };
+        }).sort((a, b) => a.termCount - b.termCount); // Process larger-terminal components first
+
+        // Calculate total clema blocks needed
+        let totalNeeded = 0;
+        compInfo.forEach(c => { totalNeeded += c.termCount; });
+
+        // Find available consecutive clema blocks
+        function findConsecutiveBlocks(startIdx, needed) {
+            const blocks = [];
+            let i = startIdx;
+            while (i + needed - 1 < APP.N) {
+                const allFree = Array.from({ length: needed }, (_, k) => i + k)
+                    .every(idx => !busyClemaIndices.has(idx));
+                if (allFree) {
+                    blocks.push({ start: i, end: i + needed - 1, count: needed });
+                }
+                i++;
+            }
+            return blocks;
+        }
+
+        // Greedy allocation: assign clema blocks to components
+        // Track which clemas are "reserved" during this allocation
+        const reservedClemas = new Set(busyClemaIndices);
+        let allocations = [];
+
+        // Sort by terminal count descending (bigger components first)
+        const sorted = [...compInfo].sort((a, b) => b.termCount - a.termCount);
+
+        // First pass: try to allocate within current clemas
+        const unallocated = [];
+        for (const comp of sorted) {
+            let fitted = false;
+            for (let i = 0; i + comp.termCount - 1 < APP.N; i++) {
+                const allFree = Array.from({ length: comp.termCount }, (_, k) => i + k)
+                    .every(idx => !reservedClemas.has(idx));
+                if (allFree) {
+                    for (let k = 0; k < comp.termCount; k++) reservedClemas.add(i + k);
+                    allocations.push({ ...comp, clemaStart: i, clemaEnd: i + comp.termCount - 1 });
+                    fitted = true;
+                    break;
+                }
+            }
+            if (!fitted) unallocated.push(comp);
+        }
+
+        // If some couldn't be allocated, ask once to add all needed clemas
+        if (unallocated.length > 0) {
+            const totalMissing = unallocated.reduce((sum, c) => sum + c.termCount, 0);
+
+            if (confirm(`No hay suficientes clemas libres para alinear todos los componentes.\n\nFaltarían ${totalMissing} clema(s).\n¿Quieres añadirlas automáticamente?`)) {
+                // Add ALL missing clemas at once (no individual confirm)
+                for (let i = 0; i < totalMissing; i++) APP.N++;
+                renderClemas();
+                renderConnectionPoints();
+                centerView(); // Recalculate viewBox for new clema count
+
+                // Re-allocate ALL components from scratch
+                allocations = [];
+                reservedClemas.clear();
+                busyClemaIndices.forEach(idx => reservedClemas.add(idx));
+
+                for (const comp of sorted) {
+                    for (let i = 0; i + comp.termCount - 1 < APP.N; i++) {
+                        const allFree = Array.from({ length: comp.termCount }, (_, k) => i + k)
+                            .every(idx => !reservedClemas.has(idx));
+                        if (allFree) {
+                            for (let k = 0; k < comp.termCount; k++) reservedClemas.add(i + k);
+                            allocations.push({ ...comp, clemaStart: i, clemaEnd: i + comp.termCount - 1 });
+                            break;
+                        }
+                    }
+                }
+            } else {
+                return false;
+            }
+        }
+
+        saveUndoState();
+
+        // Sort allocations by clemaStart (left to right)
+        allocations.sort((a, b) => a.clemaStart - b.clemaStart);
+
+        // Canvas bounds
+        const totalW = APP.N * APP.b;
+        const totalH = APP.rectH + 2 * APP.margin + 400;
+        const btnSize = Math.min(APP.b * 0.22, 14);
+        const sideExtra = Math.max(btnSize * 5, 40);
+        const padding = Math.max(APP.margin + sideExtra, 60);
+        const baseWidth = totalW + 2 * padding;
+
+        const positionDeltas = {};
+
+        // Place each component
+        allocations.forEach(alloc => {
+            const { ci, comp, dims, clemaStart, clemaEnd } = alloc;
+            const oldX = comp.x;
+            const oldY = comp.y;
+            const halfW = dims.w / 2;
+            const halfH = dims.h / 2;
+
+            // Center X: midpoint of the clema block range [clemaStart, clemaEnd]
+            // Each clema spans [margin + k*b, margin + (k+1)*b]
+            // Range starts at margin + clemaStart*b, ends at margin + (clemaEnd+1)*b
+            // Center = margin + (clemaStart*b + (clemaEnd+1)*b) / 2
+            const clemaCenterX = APP.margin + (clemaStart + clemaEnd + 1) * APP.b / 2;
+            comp.x = clemaCenterX;
+
+            // Y: fixed offset from clema edge (always preserve 60px gap)
+            if (placeAbove) {
+                comp.y = clemaTop - halfH - ALIGN_OFFSET;
+            } else {
+                comp.y = clemaBottom + halfH + ALIGN_OFFSET;
+            }
+
+            positionDeltas[ci] = { dx: comp.x - oldX, dy: comp.y - oldY };
+        });
+
+        // Update connected wire endpoints based on position deltas
+        APP.wires.forEach(w => {
+            ['start', 'end'].forEach(endpoint => {
+                if (w[endpoint].id && w[endpoint].id.startsWith('comp_')) {
+                    const parts = w[endpoint].id.split('_');
+                    const compIdx = parseInt(parts[1]);
+                    if (positionDeltas[compIdx] !== undefined) {
+                        w[endpoint].x += positionDeltas[compIdx].dx;
+                        w[endpoint].y += positionDeltas[compIdx].dy;
+                    }
+                }
+            });
+        });
+
+        // Mark reserved clemas as busy (newly allocated)
+        allocations.forEach(a => {
+            for (let i = a.clemaStart; i <= a.clemaEnd; i++) {
+                busyClemaIndices.add(i);
+            }
+        });
+
+        renderClemas();
+        renderConnectionPoints();
+        renderComponents();
+        renderWires();
+
+        const side = placeAbove ? 'arriba' : 'debajo';
+        setStatus(`${allocations.length} componentes alineados ${side} de la clema (offset ${ALIGN_OFFSET}px)`);
+        return true;
+    }
+
     function onContextMenu(e) {
         const t = e.target;
 
@@ -2805,44 +3241,13 @@ const __PNG_CACHE__ = {
 
             document.getElementById('compCtxAlign').addEventListener('click', () => {
                 dismissMenu();
-                // Collect all selected components: from selection set + right-clicked component
-                const compIndices = new Set();
-                APP.selectedWireIndices.forEach(idx => {
-                    if (idx < 0) compIndices.add(-idx - 1);
-                });
-                // Also add the right-clicked component if not already in selection
-                if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
-                compIndices.add(ci);
-
-                if (compIndices.size >= 2) {
-                    saveUndoState();
-                    const indices = [...compIndices];
-                    const avgY = indices.reduce((sum, i) => sum + APP.components[i].y, 0) / indices.length;
-
-                    // Sort by X and redistribute to avoid overlap
-                    const sorted = indices.map(i => ({
-                        comp: APP.components[i],
-                        dims: getComponentDimensions(APP.components[i].type),
-                    })).sort((a, b) => a.comp.x - b.comp.x);
-
-                    const gap = 15;
-                    let nextX = sorted[0].comp.x - sorted[0].dims.w / 2;
-                    sorted.forEach((item) => {
-                        item.comp.y = avgY;
-                        const halfW = item.dims.w / 2;
-                        const centerX = nextX + halfW;
-                        if (centerX > item.comp.x - halfW) {
-                            item.comp.x = centerX;
-                        }
-                        nextX = item.comp.x + halfW + gap;
-                    });
-
-                    renderComponents();
-                    renderWires();
-                    setStatus(`${indices.length} componentes alineados horizontalmente (Y=${avgY.toFixed(0)})`);
-                } else {
-                    alert('Selecciona al menos 2 componentes para alinear.');
+                // Add the right-clicked component to selection if not already selected
+                const negIdx = -ci - 1;
+                if (!APP.selectedWireIndices.has(negIdx) && APP.selectedComponent !== ci) {
+                    APP.selectedWireIndices.add(negIdx);
+                    APP.selectedComponent = null;
                 }
+                alignSelectedComponents();
             });
 
             document.getElementById('compCtxDel').addEventListener('click', () => {
@@ -2867,6 +3272,67 @@ const __PNG_CACHE__ = {
                         renderComponents();
                         renderWires();
                         setStatus('Componente eliminado');
+                    }
+                }
+            });
+            return;
+        }
+
+        // Text right-click → show edit/delete menu
+        if (t.classList.contains('text-element') || t.closest('.text-box')) {
+            e.preventDefault();
+            const box = t.classList.contains('text-box') ? t : t.closest('.text-box');
+            const ti = +box.dataset.textIndex;
+            if (isNaN(ti) || ti < 0 || ti >= APP.texts.length) return;
+            const txt = APP.texts[ti];
+
+            const existing = document.getElementById('textContextMenu');
+            if (existing) existing.remove();
+
+            const menu = document.createElement('div');
+            menu.id = 'textContextMenu';
+            menu.style.cssText = `
+                position:fixed;z-index:2000;background:#fff;border:1px solid var(--gray-300);
+                border-radius:0.375rem;box-shadow:var(--shadow-lg);padding:0.25rem;
+                display:flex;flex-direction:column;gap:0.125rem;font-size:0.8rem;
+            `;
+            menu.innerHTML = `
+                <button class="btn-secondary" id="textCtxEdit" style="font-size:0.75rem;padding:0.25rem 0.5rem;">✏️ Editar</button>
+                <button class="btn-danger" id="textCtxDel" style="font-size:0.75rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button>
+            `;
+            document.body.appendChild(menu);
+
+            menu.style.left = Math.min(e.clientX, window.innerWidth - 140) + 'px';
+            menu.style.top = Math.min(e.clientY, window.innerHeight - 70) + 'px';
+
+            const dismissMenu = () => { menu.remove(); document.removeEventListener('click', dismissMenu); };
+            setTimeout(() => document.addEventListener('click', dismissMenu), 10);
+
+            document.getElementById('textCtxEdit').addEventListener('click', () => {
+                dismissMenu();
+                editText(ti);
+            });
+
+            document.getElementById('textCtxDel').addEventListener('click', () => {
+                dismissMenu();
+                const totalSelected = APP.selectedTexts.size + (APP.selectedText !== null ? 1 : 0);
+                if (totalSelected > 1) {
+                    if (confirm(`¿Eliminar ${totalSelected} texto(s) seleccionado(s)?`)) {
+                        saveUndoState();
+                        const indices = APP.selectedTexts.size > 0 ? [...APP.selectedTexts] : [APP.selectedText];
+                        indices.sort((a, b) => b - a).forEach(i => APP.texts.splice(i, 1));
+                        APP.selectedText = null;
+                        APP.selectedTexts.clear();
+                        renderTexts();
+                    }
+                } else {
+                    if (confirm('¿Eliminar este texto?')) {
+                        saveUndoState();
+                        APP.texts.splice(ti, 1);
+                        if (APP.selectedText === ti) APP.selectedText = null;
+                        else if (APP.selectedText > ti) APP.selectedText--;
+                        renderTexts();
+                        setStatus('Texto eliminado');
                     }
                 }
             });
@@ -3070,64 +3536,40 @@ const __PNG_CACHE__ = {
         const dy = end.y - start.y;
         const dist = Math.hypot(dx, dy);
 
-        // Sine curve for: canvas↔clema, component↔clema, component↔canvas, component↔component
-        const hasComponent = startType === 'component' || endType === 'component';
-        const hasCanvas = startType === 'canvas' || endType === 'canvas';
-        const isSineCurve = hasComponent || (startType === 'clema' && hasCanvas) || (hasCanvas && endType === 'clema');
+        // ALL wires: clearly curved arcs with perpendicular bulge
+        const dirX = dx / dist;
+        const dirY = dy / dist;
 
-        if (isSineCurve) {
-            // Sine curve: store both tangent handles
-            const angle = Math.atan2(dy, dx);
-            const tangentLen = dist * 0.4;
-            const dirX = dx / dist;
-            const dirY = dy / dist;
+        // Perpendicular direction
+        const perpX = -dirY;
+        const perpY = dirX;
 
-            APP.wires.push({
-                id: Date.now(),
-                color: APP.selectedColor,
-                strokeWidth: APP.selectedStrokeWidth,
-                start: { x: start.x, y: start.y, id: start.id },
-                end: { x: end.x, y: end.y, id: end.id },
-                startType,
-                endType,
-                isSine: true,
-                h1x: start.x + dirX * tangentLen,
-                h1y: start.y + dirY * tangentLen,
-                h2x: end.x - dirX * tangentLen,
-                h2y: end.y - dirY * tangentLen,
-                amplitude: dist * 0.25
-            });
-        } else {
-            // Regular arc (clema to clema): cubic bezier with two handles
-            // Arc always bulges outward, much more pronounced than before
-            const offset = Math.max(dist * 0.7, 60); // Increased from 0.35 to 0.7, min from 30 to 60
-            // Perpendicular direction using absolute values for consistency
-            const nx = -Math.abs(dy) / dist;
-            const ny = Math.abs(dx) / dist;
-            // Outward: above block → bulge up, below block → bulge down
-            const midY = (start.y + end.y) / 2;
-            const blockCenterY = APP.rectStartY + APP.rectH / 2;
-            const sign = midY < blockCenterY ? -1 : 1;
+        // Determine bulge direction: above block → bulge up, below → bulge down
+        const midY = (start.y + end.y) / 2;
+        const blockCenterY = APP.rectStartY + APP.rectH / 2;
+        const sign = midY < blockCenterY ? -1 : 1;
 
-            // Two handles for the arc - more spread out for pronounced curve
-            const h1x = start.x + (dx * 0.2) + nx * offset * sign * 0.5;
-            const h1y = start.y + (dy * 0.2) + ny * offset * sign * 0.5;
-            const h2x = end.x - (dx * 0.2) + nx * offset * sign * 0.5;
-            const h2y = end.y - (dy * 0.2) + ny * offset * sign * 0.5;
+        // Clema-to-clema gets extra-pronounced curve; all others get clearly curved
+        const isClemaToClema = startType === 'clema' && endType === 'clema';
+        const tangentLen = dist * 0.3;
+        const perpOffset = isClemaToClema
+            ? Math.max(dist * 1.3, 80)   // muy pronunciado para clema-clema
+            : Math.max(dist * 0.8, 40);  // claramente curvo para el resto
 
-            APP.wires.push({
-                id: Date.now(),
-                color: APP.selectedColor,
-                strokeWidth: APP.selectedStrokeWidth,
-                start: { x: start.x, y: start.y, id: start.id },
-                end: { x: end.x, y: end.y, id: end.id },
-                startType: startType || 'clema',
-                endType: endType || 'clema',
-                isSine: false,
-                h1x, h1y,
-                h2x, h2y
-            });
-        }
+        APP.wires.push({
+            id: Date.now(),
+            color: APP.selectedColor,
+            strokeWidth: APP.selectedStrokeWidth,
+            start: { x: start.x, y: start.y, id: start.id },
+            end: { x: end.x, y: end.y, id: end.id },
+            startType: startType || 'clema',
+            endType: endType || 'clema',
+            isSine: true,
+            h1x: start.x + dirX * tangentLen + perpX * perpOffset * sign,
+            h1y: start.y + dirY * tangentLen + perpY * perpOffset * sign,
+            h2x: end.x - dirX * tangentLen + perpX * perpOffset * sign,
+            h2y: end.y - dirY * tangentLen + perpY * perpOffset * sign
+        });
         renderWires();
         setStatus('Cable creado');
     }
@@ -3153,37 +3595,37 @@ const __PNG_CACHE__ = {
     }
 
     function onMouseDown(e) {
-        if (e.button !== 0) return;
         const c = coords(e);
         const t = e.target;
 
-        // Pan with Shift+click on empty space
-        if (e.shiftKey) {
-            // Check if clicking on empty space (not on any element)
-            const isEmptySpace = !t.classList.contains('connection-point') &&
-                                 !t.classList.contains('component-terminal') &&
-                                 !t.classList.contains('wire-control-handle') &&
-                                 !t.classList.contains('wire-anchor-point') &&
-                                 !t.classList.contains('wire-node-point') &&
-                                 !t.classList.contains('wire-path') &&
-                                 !t.classList.contains('text-element') &&
-                                 !t.classList.contains('component-hit-area') &&
-                                 !t.closest('.connection-point') &&
-                                 !t.closest('.component-group') &&
-                                 !t.closest('.wire-path') &&
-                                 !t.closest('.text-box') &&
-                                 !t.closest('.component-label-group');
-
-            if (isEmptySpace) {
+        // Shift+left click → start panning (only on empty space)
+        if (e.button === 0 && e.shiftKey) {
+            const isInteractive = t.classList.contains('connection-point') ||
+                                  t.classList.contains('component-terminal') ||
+                                  t.classList.contains('wire-control-handle') ||
+                                  t.classList.contains('wire-anchor-point') ||
+                                  t.classList.contains('wire-node-point') ||
+                                  t.classList.contains('wire-path') ||
+                                  t.classList.contains('wire-path-hit-area') ||
+                                  t.classList.contains('text-element') ||
+                                  t.classList.contains('component-hit-area') ||
+                                  t.closest('.connection-point') ||
+                                  t.closest('.component-group') ||
+                                  t.closest('.wire-path') ||
+                                  t.closest('.text-box') ||
+                                  t.closest('.component-label-group');
+            if (!isInteractive) {
+                e.preventDefault();
                 APP.isPanning = true;
                 APP.panStart = { x: e.clientX, y: e.clientY };
                 const vb = APP.svg.viewBox.baseVal;
                 APP.panViewBoxStart = { x: vb.x, y: vb.y };
-                APP.svg.classList.add('panning-active');
-                e.preventDefault();
+                APP.svg.style.cursor = 'grabbing';
                 return;
             }
         }
+
+        if (e.button !== 0) return;
 
         // Component label dragging
         const labelG = t.closest ? t.closest('.component-label-group') : null;
@@ -3192,7 +3634,6 @@ const __PNG_CACHE__ = {
             const ci = +labelG.dataset.componentIndex;
             const comp = APP.components[ci];
             APP.draggingLabel = ci;
-            APP.draggingLabelCompIndex = ci;
             const currentLabelX = comp.labelX || 0;
             const currentLabelY = comp.labelYOffset || (getComponentDimensions(comp.type).h / 2 + 14);
             APP.dragLabelOffset = { x: c.x - currentLabelX, y: c.y - currentLabelY };
@@ -3200,13 +3641,37 @@ const __PNG_CACHE__ = {
             return;
         }
 
-        // Component hit area or group → drag component
+        // Component hit area or group → drag component (and all selected if multi-selected)
         if (t.classList.contains('component-hit-area') || t.closest('.component-group')) {
             const g = t.classList.contains('component-group') ? t : t.closest('.component-group');
             const ci = +g.dataset.componentIndex;
             const comp = APP.components[ci];
-            APP.draggingComponent = ci;
-            APP.dragComponentOffset = { x: c.x - comp.x, y: c.y - comp.y };
+
+            // Check if this component is part of a multi-selection
+            const negIdx = -ci - 1;
+            const otherSelected = APP.selectedWireIndices.size > 1 ||
+                (APP.selectedWireIndices.size > 0 && APP.selectedComponent !== null);
+
+            if (otherSelected || APP.selectedWireIndices.size > 1) {
+                // Multi-drag: collect all selected components
+                const allCompIndices = new Set();
+                APP.selectedWireIndices.forEach(idx => { if (idx < 0) allCompIndices.add(-idx - 1); });
+                if (APP.selectedComponent !== null) allCompIndices.add(APP.selectedComponent);
+
+                // Store deltas for all
+                APP._draggingComponents = [...allCompIndices].map(idx => ({
+                    ci: idx,
+                    comp: APP.components[idx],
+                    offset: { x: c.x - APP.components[idx].x, y: c.y - APP.components[idx].y }
+                }));
+                APP.draggingComponent = ci;
+                APP.dragComponentOffset = { x: c.x - comp.x, y: c.y - comp.y };
+            } else {
+                // Single drag
+                APP.draggingComponent = ci;
+                APP.dragComponentOffset = { x: c.x - comp.x, y: c.y - comp.y };
+                APP._draggingComponents = null;
+            }
             e.preventDefault();
             return;
         }
@@ -3302,7 +3767,7 @@ const __PNG_CACHE__ = {
         }
 
         // Start selection box on empty space (only if nothing else was clicked)
-        if (!APP.dragging && APP.draggingComponent === null && !APP.draggingLabel && !APP.textMode && !APP.isDrawing && !APP.isPanning) {
+        if (!APP.dragging && APP.draggingComponent === null && !APP.draggingLabel && !APP.textMode && !APP.isDrawing) {
             // Don't start selection on connection points or component terminals
             if (t.classList.contains('connection-point') || t.classList.contains('component-terminal') || t.closest('.connection-point')) {
                 return;
@@ -3330,20 +3795,20 @@ const __PNG_CACHE__ = {
     }
 
     function onMouseMove(e) {
-        // Pan dragging
+        // Pan dragging (Shift+click drag)
         if (APP.isPanning && APP.panStart && APP.panViewBoxStart) {
             const dx = e.clientX - APP.panStart.x;
             const dy = e.clientY - APP.panStart.y;
             const rect = APP.svg.getBoundingClientRect();
             const vb = APP.svg.viewBox.baseVal;
-            
+
             // Convert pixel delta to viewBox coordinates
             const vbDx = dx * vb.width / rect.width;
             const vbDy = dy * vb.height / rect.height;
-            
+
             const newX = APP.panViewBoxStart.x - vbDx;
             const newY = APP.panViewBoxStart.y - vbDy;
-            
+
             APP.svg.setAttribute('viewBox', `${newX} ${newY} ${vb.width} ${vb.height}`);
             return;
         }
@@ -3380,77 +3845,113 @@ const __PNG_CACHE__ = {
 
         // Component dragging
         if (APP.draggingComponent !== null) {
-            const comp = APP.components[APP.draggingComponent];
-            const origX = comp.x, origY = comp.y;
-            comp.x = c.x - APP.dragComponentOffset.x;
-            comp.y = c.y - APP.dragComponentOffset.y;
-
-            // Prevent dragging onto clema area
-            if (componentOverlapsClema(comp)) {
-                const dims = getComponentDimensions(comp.type);
-                const { h } = dims;
-                const clemaCenterY = APP.rectStartY + APP.rectH / 2;
-                if (comp.y < clemaCenterY) {
-                    comp.y = APP.rectStartY - h / 2 - 10;
-                } else {
-                    comp.y = APP.rectStartY + APP.rectH + h / 2 + 10;
-                }
-            }
-
-            // Prevent overlap with other components during drag
-            if (componentOverlapsOthers(comp, APP.draggingComponent)) {
-                const snapped = snapComponentAwayFromCollisions(comp, APP.draggingComponent);
-                if (snapped) {
-                    comp.x = snapped.x;
-                    comp.y = snapped.y;
-                    // Recheck clema overlap
+            if (APP._draggingComponents && APP._draggingComponents.length > 1) {
+                // Multi-drag: move all selected components
+                APP._draggingComponents.forEach(dc => {
+                    const comp = dc.comp;
+                    comp.x = c.x - dc.offset.x;
+                    comp.y = c.y - dc.offset.y;
+                    // Prevent dragging onto clema area
                     if (componentOverlapsClema(comp)) {
-                        const dims2 = getComponentDimensions(comp.type);
+                        const dims = getComponentDimensions(comp.type);
+                        const { h } = dims;
                         const clemaCenterY = APP.rectStartY + APP.rectH / 2;
                         comp.y = comp.y < clemaCenterY
-                            ? APP.rectStartY - dims2.h / 2 - 10
-                            : APP.rectStartY + APP.rectH + dims2.h / 2 + 10;
+                            ? APP.rectStartY - h / 2 - 10
+                            : APP.rectStartY + APP.rectH + h / 2 + 10;
                     }
-                    // Recheck component overlap after clema adjustment
-                    if (componentOverlapsOthers(comp, APP.draggingComponent)) {
-                        const clean = findCleanPosition(comp, APP.draggingComponent);
-                        if (clean) {
-                            comp.x = clean.x;
-                            comp.y = clean.y;
-                        } else {
-                            comp.x = origX;
-                            comp.y = origY;
+                    // Prevent overlap with other components during drag
+                    if (componentOverlapsOthers(comp, dc.ci)) {
+                        const snapped = snapComponentAwayFromCollisions(comp, dc.ci);
+                        if (snapped) {
+                            comp.x = snapped.x;
+                            comp.y = snapped.y;
                         }
                     }
+                });
+            } else {
+                // Single component drag
+                const comp = APP.components[APP.draggingComponent];
+                const origX = comp.x, origY = comp.y;
+                comp.x = c.x - APP.dragComponentOffset.x;
+                comp.y = c.y - APP.dragComponentOffset.y;
+
+                // Prevent dragging onto clema area
+                if (componentOverlapsClema(comp)) {
+                    const dims = getComponentDimensions(comp.type);
+                    const { h } = dims;
+                    const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+                    comp.y = comp.y < clemaCenterY
+                        ? APP.rectStartY - h / 2 - 10
+                        : APP.rectStartY + APP.rectH + h / 2 + 10;
                 }
-                // If no valid position, revert to original position
-                else {
-                    comp.x = origX;
-                    comp.y = origY;
+
+                // Prevent overlap with other components during drag
+                if (componentOverlapsOthers(comp, APP.draggingComponent)) {
+                    const snapped = snapComponentAwayFromCollisions(comp, APP.draggingComponent);
+                    if (snapped) {
+                        comp.x = snapped.x;
+                        comp.y = snapped.y;
+                        // Recheck clema overlap after snap
+                        if (componentOverlapsClema(comp)) {
+                            const dims2 = getComponentDimensions(comp.type);
+                            const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+                            comp.y = comp.y < clemaCenterY
+                                ? APP.rectStartY - dims2.h / 2 - 10
+                                : APP.rectStartY + APP.rectH + dims2.h / 2 + 10;
+                        }
+                        // Recheck component overlap after clema adjustment
+                        if (componentOverlapsOthers(comp, APP.draggingComponent)) {
+                            const clean = findCleanPosition(comp, APP.draggingComponent);
+                            if (clean) {
+                                comp.x = clean.x;
+                                comp.y = clean.y;
+                            } else {
+                                comp.x = origX;
+                                comp.y = origY;
+                            }
+                        }
+                    }
+                    // If no valid position, revert to original position
+                    else {
+                        comp.x = origX;
+                        comp.y = origY;
+                    }
                 }
             }
             // Auto-rotate 3-terminal components based on position relative to clema center
-            if (comp.type === 'transistor' || comp.type === 'commutator') {
-                const newRotation = comp.y > APP.rectStartY + APP.rectH / 2 ? 180 : 0;
-                if (comp.rotation !== newRotation) {
-                    comp.rotation = newRotation;
+            if (APP._draggingComponents && APP._draggingComponents.length > 1) {
+                APP._draggingComponents.forEach(dc => {
+                    if (dc.comp.type === 'transistor' || dc.comp.type === 'commutator') {
+                        const newRotation = dc.comp.y > APP.rectStartY + APP.rectH / 2 ? 180 : 0;
+                        if (dc.comp.rotation !== newRotation) dc.comp.rotation = newRotation;
+                    }
+                });
+            } else {
+                const comp = APP.components[APP.draggingComponent];
+                if (comp && (comp.type === 'transistor' || comp.type === 'commutator')) {
+                    const newRotation = comp.y > APP.rectStartY + APP.rectH / 2 ? 180 : 0;
+                    if (comp.rotation !== newRotation) comp.rotation = newRotation;
                 }
             }
-            // Update wire endpoints using absolute terminal positions
-            APP.wires.forEach(w => {
-                if (w.start.id && w.start.id.startsWith(`comp_${APP.draggingComponent}_`) || w.end.id && w.end.id.startsWith(`comp_${APP.draggingComponent}_`)) {
-                    const absTerminals = getComponentAbsoluteTerminals(comp);
-                    if (w.start.id && w.start.id.startsWith(`comp_${APP.draggingComponent}_`)) {
-                        const tid = w.start.id.split('_').pop();
-                        const term = absTerminals.find(tm => tm.id === tid);
-                        if (term) { w.start.x = term.x; w.start.y = term.y; }
-                    }
-                    if (w.end.id && w.end.id.startsWith(`comp_${APP.draggingComponent}_`)) {
-                        const tid = w.end.id.split('_').pop();
-                        const term = absTerminals.find(tm => tm.id === tid);
-                        if (term) { w.end.x = term.x; w.end.y = term.y; }
-                    }
-                }
+
+            // Update wire endpoints using absolute terminal positions for ALL dragged components
+            const allDragged = (APP._draggingComponents && APP._draggingComponents.length > 1)
+                ? APP._draggingComponents.map(dc => dc.ci)
+                : [APP.draggingComponent];
+
+            allDragged.forEach(dci => {
+                const comp = APP.components[dci];
+                APP.wires.forEach(w => {
+                    ['start', 'end'].forEach(ep => {
+                        if (w[ep].id && w[ep].id.startsWith(`comp_${dci}_`)) {
+                            const absTerminals = getComponentAbsoluteTerminals(comp);
+                            const tid = w[ep].id.split('_').pop();
+                            const term = absTerminals.find(tm => tm.id === tid);
+                            if (term) { w[ep].x = term.x; w[ep].y = term.y; }
+                        }
+                    });
+                });
             });
             renderComponents();
             renderWires();
@@ -3538,15 +4039,15 @@ const __PNG_CACHE__ = {
             renderTexts();
         } else if (d.type === 'wire') {
             const w = APP.wires[d.wireIndex];
-            
+
             // Calculate proposed new position
             let newX = c.x - d.offsetX;
             let newY = c.y - d.offsetY;
-            
+
             // Calculate the offset from current wire start to new position
             const dx = newX - w.start.x;
             const dy = newY - w.start.y;
-            
+
             // Move all points of the wire (allow passing over clema during drag)
             w.start.x += dx;
             w.start.y += dy;
@@ -3556,7 +4057,7 @@ const __PNG_CACHE__ = {
             w.h1y += dy;
             w.h2x += dx;
             w.h2y += dy;
-            
+
             // Move nodes if they exist
             if (w.nodes && w.nodes.length > 0) {
                 w.nodes.forEach(node => {
@@ -3568,11 +4069,110 @@ const __PNG_CACHE__ = {
                     node.h2y += dy;
                 });
             }
-            
+
+            // MAGNETIC SNAP: Attract anchor points to nearest clema connection points
+            const magnetRadius = 40; // Distance in pixels for magnet effect
+            const connectionPoints = getConnectionPoints();
+
+            // Check start anchor point
+            let nearestStart = null;
+            let nearestStartDist = Infinity;
+            connectionPoints.forEach(pt => {
+                const dist = Math.hypot(pt.x - w.start.x, pt.y - w.start.y);
+                if (dist < nearestStartDist) {
+                    nearestStartDist = dist;
+                    nearestStart = pt;
+                }
+            });
+
+            // Apply magnetic attraction to start point
+            if (nearestStart && nearestStartDist < magnetRadius && nearestStartDist > 0) {
+                // Calculate attraction strength (stronger when closer)
+                const attractionStrength = 1 - (nearestStartDist / magnetRadius);
+                const snapForce = 0.6; // How strongly the magnet pulls (0-1)
+                const pullFactor = attractionStrength * snapForce;
+
+                w.start.x += (nearestStart.x - w.start.x) * pullFactor;
+                w.start.y += (nearestStart.y - w.start.y) * pullFactor;
+
+                // Show magnetic preview
+                if (APP.overlayGroup) {
+                    clear(APP.overlayGroup);
+                    const preview = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    preview.setAttribute('cx', nearestStart.x);
+                    preview.setAttribute('cy', nearestStart.y);
+                    preview.setAttribute('r', 6 + attractionStrength * 6);
+                    preview.setAttribute('fill', `rgba(37, 99, 235, ${0.15 + attractionStrength * 0.25})`);
+                    preview.setAttribute('stroke', '#2563eb');
+                    preview.setAttribute('stroke-width', '1.5');
+                    preview.style.pointerEvents = 'none';
+                    APP.overlayGroup.appendChild(preview);
+
+                    // Draw attraction line
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', w.start.x);
+                    line.setAttribute('y1', w.start.y);
+                    line.setAttribute('x2', nearestStart.x);
+                    line.setAttribute('y2', nearestStart.y);
+                    line.setAttribute('stroke', 'rgba(37, 99, 235, 0.3)');
+                    line.setAttribute('stroke-width', '1');
+                    line.setAttribute('stroke-dasharray', '3,3');
+                    line.style.pointerEvents = 'none';
+                    APP.overlayGroup.appendChild(line);
+                }
+            }
+
+            // Check end anchor point
+            let nearestEnd = null;
+            let nearestEndDist = Infinity;
+            connectionPoints.forEach(pt => {
+                const dist = Math.hypot(pt.x - w.end.x, pt.y - w.end.y);
+                if (dist < nearestEndDist) {
+                    nearestEndDist = dist;
+                    nearestEnd = pt;
+                }
+            });
+
+            // Apply magnetic attraction to end point
+            if (nearestEnd && nearestEndDist < magnetRadius && nearestEndDist > 0) {
+                // Calculate attraction strength (stronger when closer)
+                const attractionStrength = 1 - (nearestEndDist / magnetRadius);
+                const snapForce = 0.6; // How strongly the magnet pulls (0-1)
+                const pullFactor = attractionStrength * snapForce;
+
+                w.end.x += (nearestEnd.x - w.end.x) * pullFactor;
+                w.end.y += (nearestEnd.y - w.end.y) * pullFactor;
+
+                // Show magnetic preview
+                if (APP.overlayGroup) {
+                    const preview = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    preview.setAttribute('cx', nearestEnd.x);
+                    preview.setAttribute('cy', nearestEnd.y);
+                    preview.setAttribute('r', 6 + attractionStrength * 6);
+                    preview.setAttribute('fill', `rgba(37, 99, 235, ${0.15 + attractionStrength * 0.25})`);
+                    preview.setAttribute('stroke', '#2563eb');
+                    preview.setAttribute('stroke-width', '1.5');
+                    preview.style.pointerEvents = 'none';
+                    APP.overlayGroup.appendChild(preview);
+
+                    // Draw attraction line
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', w.end.x);
+                    line.setAttribute('y1', w.end.y);
+                    line.setAttribute('x2', nearestEnd.x);
+                    line.setAttribute('y2', nearestEnd.y);
+                    line.setAttribute('stroke', 'rgba(37, 99, 235, 0.3)');
+                    line.setAttribute('stroke-width', '1');
+                    line.setAttribute('stroke-dasharray', '3,3');
+                    line.style.pointerEvents = 'none';
+                    APP.overlayGroup.appendChild(line);
+                }
+            }
+
             // Update offset to maintain relative position
             d.offsetX = c.x - w.start.x;
             d.offsetY = c.y - w.start.y;
-            
+
             APP.svg.style.cursor = 'grabbing';
             renderWires();
         }
@@ -3584,21 +4184,63 @@ const __PNG_CACHE__ = {
             APP.isPanning = false;
             APP.panStart = null;
             APP.panViewBoxStart = null;
-            APP.svg.classList.remove('panning-active');
+            APP.svg.style.cursor = 'default';
         }
 
         if (APP.dragging) {
             // Check if wire was being dragged
             if (APP.dragging.type === 'wire') {
                 const w = APP.wires[APP.dragging.wireIndex];
-                
+
                 // Check if wire actually moved (compare current position to start position)
                 const startX = APP.dragging.startX;
                 const startY = APP.dragging.startY;
                 const hasMoved = Math.abs(w.start.x - startX) > 2 || Math.abs(w.start.y - startY) > 2;
-                
+
                 // Only adjust concavity if wire was actually dragged (not just clicked)
                 if (hasMoved) {
+                    // MAGNETIC SNAP ON RELEASE: Snap to nearest clema points if within magnet radius
+                    const magnetRadius = 40;
+                    const connectionPoints = getConnectionPoints();
+
+                    // Check start anchor
+                    let nearestStart = null;
+                    let nearestStartDist = Infinity;
+                    connectionPoints.forEach(pt => {
+                        const dist = Math.hypot(pt.x - w.start.x, pt.y - w.start.y);
+                        if (dist < nearestStartDist) {
+                            nearestStartDist = dist;
+                            nearestStart = pt;
+                        }
+                    });
+
+                    // Snap start point if within range
+                    if (nearestStart && nearestStartDist < magnetRadius) {
+                        w.start.x = nearestStart.x;
+                        w.start.y = nearestStart.y;
+                        w.startType = 'clema';
+                        w.start.id = nearestStart.id;
+                    }
+
+                    // Check end anchor
+                    let nearestEnd = null;
+                    let nearestEndDist = Infinity;
+                    connectionPoints.forEach(pt => {
+                        const dist = Math.hypot(pt.x - w.end.x, pt.y - w.end.y);
+                        if (dist < nearestEndDist) {
+                            nearestEndDist = dist;
+                            nearestEnd = pt;
+                        }
+                    });
+
+                    // Snap end point if within range
+                    if (nearestEnd && nearestEndDist < magnetRadius) {
+                        w.end.x = nearestEnd.x;
+                        w.end.y = nearestEnd.y;
+                        w.endType = 'clema';
+                        w.end.id = nearestEnd.id;
+                    }
+
                     // Adjust concavity: make the curve bulge toward the clema based on wire position
                     const clemaCenterY = APP.rectStartY + APP.rectH / 2;
                     const wireMidY = (w.start.y + w.end.y) / 2;
@@ -3629,6 +4271,13 @@ const __PNG_CACHE__ = {
                     }
 
                     renderWires();
+                    
+                    // Show status message
+                    const snapped = (nearestStart && nearestStartDist < magnetRadius) || 
+                                   (nearestEnd && nearestEndDist < magnetRadius);
+                    if (snapped) {
+                        setStatus('Cable atraído y fijado al punto de conexión más cercano');
+                    }
                 } else {
                     // Wire was just clicked, not dragged - handle selection
                     // Toggle selection
@@ -3684,11 +4333,11 @@ const __PNG_CACHE__ = {
             saveUndoState();
             APP.draggingComponent = null;
             APP.dragComponentOffset = null;
+            APP._draggingComponents = null;
         }
         if (APP.draggingLabel !== null) {
             saveUndoState();
             APP.draggingLabel = null;
-            APP.draggingLabelCompIndex = null;
             APP.dragLabelOffset = null;
         }
 
@@ -3779,253 +4428,6 @@ const __PNG_CACHE__ = {
             renderTexts();
             setStatus(`${APP.selectedWireIndices.size} elementos seleccionados`);
         }
-    }
-
-    // Touch
-    // ============================================================
-    // ENHANCED TOUCH HANDLERS
-    // ============================================================
-    (function() {
-        let lastTapTime = 0;
-        let lastTapTarget = null;
-        let longPressTimer = null;
-        let longPressFired = false;
-        let pinchStartDist = 0;
-        let pinchStartScale = 1;
-        let touchStartY = 0;
-        let touchStartX = 0;
-        let isScrolling = false;
-        let activeTouchTarget = null;
-
-        function getTouchPos(touch) {
-            return { clientX: touch.clientX, clientY: touch.clientY };
-        }
-
-        function getTouchDistance(t1, t2) {
-            return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-        }
-
-        function handleDoubleTap(touch) {
-            // Dispatch dblclick event for wire node insertion
-            const mouseEvent = new MouseEvent('dblclick', {
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-                button: 0,
-                bubbles: true
-            });
-            APP.svg.dispatchEvent(mouseEvent);
-        }
-
-        function handleLongPress(touch) {
-            // Find the actual element under the touch point, not just the SVG
-            const target = document.elementFromPoint(touch.clientX, touch.clientY) || APP.svg;
-            const mouseEvent = new MouseEvent('contextmenu', {
-                clientX: touch.clientX,
-                clientY: touch.clientY,
-                button: 2,
-                bubbles: true,
-                cancelable: true,
-            });
-            target.dispatchEvent(mouseEvent);
-        }
-
-        function handlePinchZoom(e) {
-            if (e.touches.length !== 2) return;
-            e.preventDefault();
-
-            const t1 = e.touches[0];
-            const t2 = e.touches[1];
-            const currentDist = getTouchDistance(t1, t2);
-
-            if (pinchStartDist === 0) {
-                pinchStartDist = currentDist;
-                pinchStartScale = APP._zoomScale || 1;
-                return;
-            }
-
-            const scale = currentDist / pinchStartDist;
-            const newScale = Math.min(Math.max(pinchStartScale * scale, 0.2), 8);
-            APP._zoomScale = newScale;
-
-            // Apply zoom via viewBox
-            const vb = APP.svg.viewBox.baseVal;
-            const totalW = APP.N * APP.b;
-            const totalH = APP.rectH + 2 * APP.margin + 400;
-            const baseWidth = totalW + 2 * Math.max(APP.margin + Math.max(Math.min(APP.b * 0.22, 14) * 5, 40), 60);
-            const newW = baseWidth / newScale;
-            const newH = totalH / newScale;
-            APP.svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${newW} ${newH}`);
-            APP.svgWidth = newW;
-            APP.svgHeight = newH;
-        }
-
-        function isInteractiveElement(target) {
-            // Check if touch is on an interactive element
-            if (!target) return false;
-            const interactiveSelectors = [
-                '.connection-point',
-                '.component-terminal',
-                '.wire-control-handle',
-                '.wire-anchor-point',
-                '.wire-node-point',
-                '.wire-path-hit-area',
-                '.wire-path',
-                '.component-hit-area',
-                '.component-group',
-                '.text-box',
-                'button',
-                'input',
-                'select'
-            ];
-            
-            for (const selector of interactiveSelectors) {
-                if (target.matches && target.matches(selector)) return true;
-                if (target.closest && target.closest(selector)) return true;
-            }
-            return false;
-        }
-
-        APP.svg.addEventListener('touchstart', function(e) {
-            // Pinch-to-zoom: two fingers
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                pinchStartDist = 0;
-                handlePinchZoom(e);
-                isScrolling = false;
-                return;
-            }
-
-            const touch = e.touches[0];
-            const now = Date.now();
-            
-            // Track touch start position for scroll detection
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
-            isScrolling = false;
-            activeTouchTarget = touch.target;
-
-            // Double-tap detection
-            if (now - lastTapTime < 350 && lastTapTarget === touch.target) {
-                e.preventDefault();
-                handleDoubleTap(touch);
-                lastTapTime = 0;
-                return;
-            }
-            lastTapTime = now;
-            lastTapTarget = touch.target;
-
-            // Long-press timer (500ms)
-            longPressFired = false;
-            longPressTimer = setTimeout(() => {
-                longPressFired = true;
-                handleLongPress(touch);
-            }, 500);
-
-            // Pan mode: start panning immediately
-            if (APP.panMode) {
-                e.preventDefault();
-                APP.isPanning = true;
-                APP.panStart = { x: touch.clientX, y: touch.clientY };
-                const vb = APP.svg.viewBox.baseVal;
-                APP.panViewBoxStart = { x: vb.x, y: vb.y };
-                APP.svg.classList.add('panning-active');
-                return;
-            }
-
-            // ALWAYS dispatch mousedown for touch, regardless of target
-            // This ensures components, wires, etc. can be dragged
-            e.preventDefault();
-            dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mousedown');
-        }, { passive: false });
-
-        APP.svg.addEventListener('touchmove', function(e) {
-            // Pinch-to-zoom
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                clearTimeout(longPressTimer);
-                handlePinchZoom(e);
-                return;
-            }
-
-            // Cancel long-press on move
-            clearTimeout(longPressTimer);
-
-            const touch = e.touches[0];
-            
-            // Handle panning
-            if (APP.isPanning && APP.panStart && APP.panViewBoxStart) {
-                e.preventDefault();
-                const dx = touch.clientX - APP.panStart.x;
-                const dy = touch.clientY - APP.panStart.y;
-                const vb = APP.svg.viewBox.baseVal;
-                const scale = vb.width / APP.svg.clientWidth;
-                const vbDx = dx * scale;
-                const vbDy = dy * scale;
-                const newX = APP.panViewBoxStart.x - vbDx;
-                const newY = APP.panViewBoxStart.y - vbDy;
-                const totalW = APP.N * APP.b;
-                const totalH = APP.rectH + 2 * APP.margin + 400;
-                const baseWidth = totalW + 2 * Math.max(APP.margin + Math.max(Math.min(APP.b * 0.22, 14) * 5, 40), 60);
-                const baseHeight = totalH;
-                // Allow free panning in all directions (no Math.max(0) lower bound)
-                const margin2 = 200;
-                APP.svg.setAttribute('viewBox', `${Math.max(-margin2, Math.min(newX, baseWidth - vb.width + margin2))} ${Math.max(-margin2, Math.min(newY, baseHeight - vb.height + margin2))} ${vb.width} ${vb.height}`);
-                return;
-            }
-            
-            // Detect if user is trying to scroll (vertical movement)
-            const deltaX = Math.abs(touch.clientX - touchStartX);
-            const deltaY = Math.abs(touch.clientY - touchStartY);
-            
-            // If vertical scroll is dominant and not dragging anything, allow scrolling
-            if (!isScrolling && deltaY > 10 && deltaY > deltaX && !APP.dragging && APP.draggingComponent === null && !APP.isDrawing && !APP.panMode) {
-                isScrolling = true;
-                // Let the browser handle the scroll
-                return;
-            }
-            
-            // If horizontal movement or dragging, handle as drag
-            if (!isScrolling && (deltaX > 5 || APP.dragging || APP.draggingComponent !== null || APP.isDrawing)) {
-                e.preventDefault();
-                dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mousemove');
-            }
-        }, { passive: false });
-
-        APP.svg.addEventListener('touchend', function(e) {
-            // Clear long-press timer
-            clearTimeout(longPressTimer);
-
-            // End panning
-            if (APP.isPanning) {
-                APP.isPanning = false;
-                APP.panStart = null;
-                APP.panViewBoxStart = null;
-                APP.svg.classList.remove('panning-active');
-            }
-
-            if (e.touches.length === 0 && !longPressFired) {
-                const touch = e.changedTouches[0];
-                // Always dispatch mouseup to complete any drag/click action
-                dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'mouseup');
-                // Also dispatch click event (needed since preventDefault stops native click)
-                dispatchMouse(APP.svg, touch.clientX, touch.clientY, 'click');
-            }
-            
-            isScrolling = false;
-            activeTouchTarget = null;
-        }, { passive: false });
-    })();
-
-    // Keep old dispatch function for compatibility
-    function dispatchMouse(svg, cx, cy, type) {
-        // Find the actual SVG element under the touch point so event handlers
-        // can use e.target to detect connection points, wires, components, etc.
-        const realTarget = document.elementFromPoint(cx, cy) || svg;
-        const inSvg = svg.contains(realTarget) ? realTarget : svg;
-        inSvg.dispatchEvent(new MouseEvent(type, {
-            clientX: cx, clientY: cy, button: 0,
-            bubbles: true, cancelable: true
-        }));
     }
 
     // ============================================================
@@ -4648,36 +5050,62 @@ const __PNG_CACHE__ = {
         if (!content) { alert('Escriba un texto'); return; }
 
         saveUndoState();
-        const pos = textPlacementPos || { x: APP.margin, y: APP.rectStartY + APP.rectH + 30 + APP.texts.length * 25 };
-        APP.texts.push({
-            id: Date.now(),
-            text: content,
-            x: pos.x,
-            y: pos.y,
-            fontSize,
-            color,
-            bgColor,
-        });
-        renderTexts();
-        textPlacementPos = null;
+
+        if (editingTextIndex !== null) {
+            // Edit existing text
+            const txt = APP.texts[editingTextIndex];
+            if (txt) {
+                txt.text = content;
+                txt.fontSize = fontSize;
+                txt.color = color;
+                txt.bgColor = bgColor;
+            }
+            editingTextIndex = null;
+            renderTexts();
+            setStatus('Texto editado.');
+        } else {
+            // Add new text
+            const pos = textPlacementPos || { x: APP.margin, y: APP.rectStartY + APP.rectH + 30 + APP.texts.length * 25 };
+            APP.texts.push({
+                id: Date.now(),
+                text: content,
+                x: pos.x,
+                y: pos.y,
+                fontSize,
+                color,
+                bgColor,
+            });
+            renderTexts();
+            textPlacementPos = null;
+            setStatus('Texto añadido. Arrástrelo para moverlo, doble clic para editar.');
+        }
+
         document.getElementById('addTextDialog').classList.add('hidden');
         document.getElementById('textContent').value = '';
         if (APP.textMode) {
             APP.textMode = false;
-            setStatus('Texto añadido. Modo texto desactivado.');
-        } else {
-            setStatus('Texto añadido. Arrástrelo para moverlo, doble clic para editar.');
         }
     }
 
+    let editingTextIndex = null;
+
     function editText(index) {
         const txt = APP.texts[index];
-        const newText = prompt('Editar texto:', txt.text);
-        if (newText !== null) {
-            saveUndoState();
-            txt.text = newText || txt.text;
-            renderTexts();
-        }
+        if (!txt) return;
+        editingTextIndex = index;
+
+        // Populate the dialog with existing values
+        document.getElementById('textContent').value = txt.text;
+        document.getElementById('textFontSize').value = txt.fontSize || 14;
+        document.getElementById('textColor').value = txt.color || '#000000';
+        const isTransparent = !txt.bgColor || txt.bgColor === 'transparent';
+        document.getElementById('textBgTransparent').checked = isTransparent;
+        document.getElementById('textBgColor').value = isTransparent ? '#ffffff' : txt.bgColor;
+        document.getElementById('textBgColor').disabled = isTransparent;
+
+        document.getElementById('addTextDialog').classList.remove('hidden');
+        document.getElementById('textContent').focus();
+        document.getElementById('textContent').select();
     }
 
     function renderTexts() {
@@ -4733,6 +5161,7 @@ const __PNG_CACHE__ = {
     // UNDO / REDO
     // ============================================================
     function saveUndoState() {
+        APP.hasUnsavedChanges = true;
         APP.undoStack.push(JSON.stringify({ 
             wires: APP.wires, 
             texts: APP.texts, 
@@ -4846,7 +5275,7 @@ const __PNG_CACHE__ = {
     // ============================================================
     // EXPORT HELPERS
     // ============================================================
-    const EXPORT_INLINE_STYLES = '.clema-rect{fill:#fef3c7;stroke:#92400e;stroke-width:2}.clema-circle{fill:#d1d5db;stroke:#6b7280;stroke-width:1.5}.clema-line{stroke:#374151;stroke-width:2}.wire-path{fill:none;stroke-linecap:round}.component-label{font-weight:600}';
+    const EXPORT_INLINE_STYLES = '.wire-path{fill:none;stroke-linecap:round}.component-label{font-weight:600}';
 
     async function cloneSvgForExport() {
         const cloned = document.getElementById('mainSvg').cloneNode(true);
@@ -4859,11 +5288,6 @@ const __PNG_CACHE__ = {
         cloned.querySelectorAll('text[filter]').forEach(el => el.removeAttribute('filter'));
         cloned.querySelectorAll('.wire-path.selected').forEach(el => { el.classList.remove('selected'); el.removeAttribute('filter'); });
         await convertImagesToBase64(cloned);
-        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-        const style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-        style.textContent = EXPORT_INLINE_STYLES;
-        defs.appendChild(style);
-        if (cloned.firstChild) cloned.insertBefore(defs, cloned.firstChild); else cloned.appendChild(defs);
         return cloned;
     }
 
@@ -4982,6 +5406,7 @@ const __PNG_CACHE__ = {
         try {
             const serialized = JSON.stringify(data);
             localStorage.setItem(LOCAL_KEY, serialized);
+            markAsSaved();
             setStatus('Proyecto guardado en el navegador');
             alert('Proyecto guardado correctamente.');
         } catch (e) {
@@ -5100,11 +5525,8 @@ const __PNG_CACHE__ = {
         }
     }
 
-    // ============================================================
-    // GITHUB
-    // ============================================================
+    // GitHub helpers
     let ghExistingGistId = null;
-    let ghExistingGistUrl = null;
 
     function loadTokenFromFile(e) {
         const file = e.target.files[0];
@@ -5114,17 +5536,54 @@ const __PNG_CACHE__ = {
             const token = ev.target.result.trim();
             document.getElementById('ghToken').value = token;
             document.getElementById('ghLoadToken').value = token;
-            setStatus('Token de GitHub cargado');
+            // Auto-save to localStorage
+            try { localStorage.setItem(GH_TOKEN_KEY, token); } catch(e) { /* ignore */ }
+            setStatus('Token de GitHub cargado desde archivo y guardado');
         };
         reader.readAsText(file);
         e.target.value = '';
+    }
+
+    // Save/load token from localStorage
+    function saveTokenToLocalStorage() {
+        const token = document.getElementById('ghToken').value.trim() || document.getElementById('ghLoadToken').value.trim();
+        if (!token) { alert('No hay token para guardar'); return; }
+        try {
+            localStorage.setItem(GH_TOKEN_KEY, token);
+            // Sync both fields
+            document.getElementById('ghToken').value = token;
+            document.getElementById('ghLoadToken').value = token;
+            setStatus('Token de GitHub guardado en el navegador');
+            alert('Token guardado correctamente en el navegador.');
+        } catch (e) {
+            alert('Error al guardar el token: ' + e.message);
+        }
+    }
+
+    function loadTokenFromLocalStorage() {
+        const token = localStorage.getItem(GH_TOKEN_KEY);
+        if (token) {
+            document.getElementById('ghToken').value = token;
+            document.getElementById('ghLoadToken').value = token;
+            return true;
+        }
+        return false;
+    }
+
+    function autoFillToken() {
+        // Try localStorage first
+        if (loadTokenFromLocalStorage()) return;
+        // Fall back to the other dialog's token if available
+        const loadToken = document.getElementById('ghLoadToken').value;
+        if (loadToken) document.getElementById('ghToken').value = loadToken;
+        const saveToken = document.getElementById('ghToken').value;
+        if (saveToken) document.getElementById('ghLoadToken').value = saveToken;
     }
 
     async function openGithubSaveDialog() {
         const dialog = document.getElementById('githubSaveDialog');
         dialog.classList.remove('hidden');
         ghExistingGistId = null;
-        ghExistingGistUrl = null;
         document.getElementById('btnGhSaveAsNew').style.display = 'none';
         document.getElementById('ghSaveFileList').style.display = 'none';
         document.getElementById('btnGhSaveConfirm').textContent = 'Guardar';
@@ -5134,9 +5593,8 @@ const __PNG_CACHE__ = {
         document.getElementById('ghFilename').value = projName + '.json';
         document.getElementById('ghDescription').value = `ClemasV2 - ${APP.projectName || 'Mi Circuito'}`;
 
-        // Auto-fill token if already loaded
-        const loadToken = document.getElementById('ghLoadToken').value;
-        if (loadToken) document.getElementById('ghToken').value = loadToken;
+        // Auto-fill token from localStorage or other dialog
+        autoFillToken();
 
         // Search for existing file
         await searchGithubFile();
@@ -5168,7 +5626,6 @@ const __PNG_CACHE__ = {
 
             if (matching.length > 0) {
                 ghExistingGistId = matching[0].id;
-                ghExistingGistUrl = matching[0].html_url;
                 listDiv.innerHTML = `
                     <div style="padding:0.75rem;background:#fef3c7;border-radius:0.375rem;margin-bottom:0.5rem;">
                         <div style="font-weight:600;color:#92400e;">⚠️ El archivo "${filename}" ya existe</div>
@@ -5229,7 +5686,11 @@ const __PNG_CACHE__ = {
             }
             const result = await res.json();
 
+            // Auto-save token on successful save
+            try { localStorage.setItem(GH_TOKEN_KEY, token); } catch(e) { /* ignore */ }
+
             document.getElementById('githubSaveDialog').classList.add('hidden');
+            markAsSaved();
             if (asNew) alert(`Guardado como nuevo: ${result.html_url}`);
             else if (ghExistingGistId) alert(`Sobrescrito: ${result.html_url}`);
             else alert(`Guardado: ${result.html_url}`);
