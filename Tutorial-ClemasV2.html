@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutorial - App Montaje de Circuitos con Clemas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #00d4ff;
+            text-align: center;
+            border-bottom: 3px solid #00d4ff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-family: 'Arial Black', sans-serif;
+        }
+
+        h2 {
+            color: #006688;
+            border-left: 4px solid #00d4ff;
+            padding-left: 10px;
+            margin: 25px 0 15px 0;
+        }
+
+        h3 {
+            color: #0088aa;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            margin: 10px 0 10px 25px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        .note {
+            background: #f0f8ff;
+            border: 1px solid #00d4ff;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #00d4ff;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .shortcut {
+            background: #333;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        a {
+            color: #00a8cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+            color: #00d4ff;
+        }
+
+        .page {
+            background: #fff;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-number {
+            background: #333;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .tab-container {
+            background: #333;
+            padding: 10px 10px 0 10px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .tab {
+            display: inline-block;
+            background: #555;
+            color: #ccc;
+            padding: 8px 15px;
+            margin-right: 3px;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .tab:hover {
+            background: #666;
+        }
+
+        .tab.active {
+            background: #00d4ff;
+            color: white;
+        }
+
+        .print-header {
+            display: none;
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        .no-print {
+            background: #222;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .no-print button {
+            background: #00d4ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .no-print button:hover {
+            background: #00a8cc;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .tab-container, .no-print {
+                display: none !important;
+            }
+
+            .page {
+                display: block !important;
+                page-break-after: always;
+                max-width: 100%;
+                padding: 15mm;
+                min-height: 0;
+            }
+
+            .page::before {
+                content: attr(data-title);
+                display: block;
+                font-size: 10pt;
+                color: #666;
+                margin-bottom: 10px;
+                padding-bottom: 5px;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .print-header {
+                display: block;
+            }
+
+            h1 {
+                font-size: 18pt;
+            }
+
+            h2 {
+                font-size: 14pt;
+                page-break-after: avoid;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()">🖨️ Imprimir Todo el Tutorial</button>
+    </div>
+
+    <div class="tab-container">
+        <span class="tab active" onclick="showPage(0)">Índice</span>
+        <span class="tab" onclick="showPage(1)">1. Introducción</span>
+        <span class="tab" onclick="showPage(2)">2. Primeros Pasos</span>
+        <span class="tab" onclick="showPage(3)">3. Clemas</span>
+        <span class="tab" onclick="showPage(4)">4. Componentes</span>
+        <span class="tab" onclick="showPage(5)">5. Cables</span>
+        <span class="tab" onclick="showPage(6)">6. Arduino</span>
+        <span class="tab" onclick="showPage(7)">7. Texto</span>
+        <span class="tab" onclick="showPage(8)">8. Navegación</span>
+        <span class="tab" onclick="showPage(9)">9. Alinear</span>
+        <span class="tab" onclick="showPage(10)">10. Guardar</span>
+        <span class="tab" onclick="showPage(11)">11. Tutorial PDF</span>
+        <span class="tab" onclick="showPage(12)">12. Atajos</span>
+        <span class="tab" onclick="showPage(13)">13. Limpieza</span>
+        <span class="tab" onclick="showPage(14)">14. Personalizar</span>
+    </div>
+
+    <!-- Página 0: Índice -->
+    <div class="page active" data-title="Página 1: Índice" id="page-0">
+        <h1>MONTAJE DE CIRCUITOS CON CLEMAS</h1>
+        <p style="text-align: center; color: #666;">
+            <em>Tutorial de uso de la aplicación ClemasV2</em>
+        </p>
+        <br>
+
+        <h2>Índice</h2>
+        <ol style="font-size: 15px; line-height: 2;">
+            <li><a href="#" onclick="showPage(1)">Introducción</a> - ¿Qué son las clemas?</li>
+            <li><a href="#" onclick="showPage(2)">Primeros Pasos</a> - Iniciar proyecto e interfaz</li>
+            <li><a href="#" onclick="showPage(3)">Trabajar con Clemas</a> - Añadir y personalizar</li>
+            <li><a href="#" onclick="showPage(4)">Componentes Electrónicos</a> - Tipos y atajos</li>
+            <li><a href="#" onclick="showPage(5)">Cables y Conexiones</a> - Crear y editar</li>
+            <li><a href="#" onclick="showPage(6)">Arduino</a> - Terminales y pines</li>
+            <li><a href="#" onclick="showPage(7)">Texto y Anotaciones</a> - Añadir texto</li>
+            <li><a href="#" onclick="showPage(8)">Navegación y Vistas</a> - Zoom y desplazamiento</li>
+            <li><a href="#" onclick="showPage(9)">Alinear Componentes</a> - Alineación automática</li>
+            <li><a href="#" onclick="showPage(10)">Guardar y Exportar</a> - JSON, SVG, PNG, GitHub</li>
+            <li><a href="#" onclick="showPage(11)">Tutorial de Montaje PDF</a> - Generar instrucciones</li>
+            <li><a href="#" onclick="showPage(12)">Atajos de Teclado</a> - Todos los atajos</li>
+            <li><a href="#" onclick="showPage(13)">Limpieza del Lienzo</a> - Borrar elementos</li>
+            <li><a href="#" onclick="showPage(14)">Personalizar Opciones</a> - Cables y lienzo</li>
+        </ol>
+
+        <br><br><br>
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ccc; color: #666;">
+            <p style="font-size: 14pt;">© 2026 @angelmicelti</p>
+        </div>
+    </div>
+
+    <!-- Página 1: Introducción -->
+    <div class="page" data-title="Página 2: Introducción" id="page-1">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">1</span>
+        </div>
+        <h2>1. Introducción</h2>
+        <p>
+            Esta aplicación permite diseñar y documentar el montaje de circuitos eléctricos utilizando clemas (bornes de conexión).
+            Es una herramienta ideal para proyectos educativos de electricidad y electrónica.
+        </p>
+        <div class="note">
+            <strong>¿Qué son las clemas?</strong><br>
+            Las clemas son bloques rectangulares con puntos de conexión superiores e inferiores, utilizados para
+            organizar y simplificar el cableado de circuitos eléctricos.
+        </div>
+        <p>
+            La aplicación ofrece:
+        </p>
+        <ul>
+            <li>Diseño visual de circuitos con clemas</li>
+            <li>Biblioteca de componentes electrónicos</li>
+            <li>Generación automática de tutoriales de montaje</li>
+            <li>Exportación a múltiples formatos</li>
+            <li>Guardado en GitHub Gist</li>
+        </ul>
+    </div>
+
+    <!-- Página 2: Primeros Pasos -->
+    <div class="page" data-title="Página 3: Primeros Pasos" id="page-2">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">2</span>
+        </div>
+<h2>2. Primeros Pasos</h2>
+        <p>Antes de diseñar circuitos, necesita configurar y conocer la interfaz de la aplicación.</p>
+        
+        <h3>2.1 Iniciar un proyecto</h3>
+        <ol>
+            <li>Abra el archivo <code>AppClemasV2-Final.html</code> en un navegador web moderno (Chrome, Firefox, Edge, Safari)</li>
+            <li>En el diálogo inicial, configure los parámetros básicos:
+                <ul>
+                    <li><strong>Número de clemas (N):</strong> Cuántas clemas necesita el circuito (1-50)</li>
+                    <li><strong>Base (b):</strong> Tamaño de cada clema en píxeles (30-120). Valores mayores = clemas más grandes.</li>
+                </ul>
+            </li>
+            <li>Haga clic en <strong>Iniciar</strong> para comenzar a diseñar</li>
+        </ol>
+
+        <h3>2.2 Interfaz principal</h3>
+        <p>La interfaz se divide en varias áreas:</p>
+        <ul>
+            <li><strong>Barra superior:</strong> Nombre del proyecto, botones de acción (Nuevo, Deshacer, Rehacer, Archivo, Ayuda)</li>
+            <li><strong>Barra lateral izquierda:</strong> Controles organizados en seccionesplegables:
+                <ul>
+                    <li>CABLES: Color y grosor de los cables</li>
+                    <li>CLEMAS: Apariencia de las clemas</li>
+                    <li>Componentes: Biblioteca de componentes</li>
+                    <li>ARDUINO: Botones rápidos para pines</li>
+                    <li>LIENZO: Fondo y tamaño</li>
+                    <li>LIMPIAR: Opciones de borrado</li>
+                    <li>Texto: Añadir anotaciones</li>
+                    <li>Tutorial: Generar guías</li>
+                </ul>
+            </li>
+            <li><strong>Área central (lienzo):</strong> El área de dibujo donde coloca clemas, componentes y cables</li>
+            <li><strong>Barra de estado:</strong> Muestra información contextual y consejos</li>
+        </ul>
+
+        <div class="note">
+            <strong>Consejo:</strong> Use el botón "Archivo" (📁) para acceder a todas las opciones de exportación, guardado e importación.
+        </div>
+    </div>
+    </div>
+
+<!-- Página 3: Clemas -->
+    <div class="page" data-title="Página 4: Trabajar con Clemas" id="page-3">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">3</span>
+        </div>
+        <h2>3. Trabajar con Clemas</h2>
+        <p>Las clemas son el elemento central de la aplicación. Son bloques rectangulares que representan los bornes de conexión donde se conectan los cables del circuito. Cada clema tiene puntos de conexión en la parte superior y en la parte inferior.</p>
+ 
+        <h3>3.1 Añadir/Quitar clemas</h3>
+        <p>En cada extremo de la fila de clemas hay botones <strong>+ / −</strong> para añadir o quitar clemas dinámicamente durante el diseño. Esto le permite:</p>
+        <ul>
+            <li><strong>Añadir clemas:</strong> Haga clic en el botón + del extremo derecho para añadir una nueva clema.</li>
+            <li><strong>Quitar clemas:</strong> Haga clic en el botón - del extremo izquierdo para eliminar una clema (si hay más de una).</li>
+        </ul>
+        <div class="note">
+            <strong>Nota:</strong> Al quitar una clema se pierden los puntos de conexión asociados. Asegúrese de no tener cables conectados a esa clema.
+        </div>
+
+        <h3>3.2 Personalizar clemas</h3>
+        <p>En la barra lateral, sección <strong><a href="#" onclick="showPage(14)">CLEMAS</a></strong>, puede personalizar la apariencia de todas las clemas:</p>
+        <ul>
+            <li><strong>Color del trazo (borde):</strong> Color del borde de las clemas. Por defecto es marrón.</li>
+            <li><strong>Color del relleno:</strong> Color del interior de las clemas. Por defecto es amarillo claro.</li>
+            <li><strong>Color de los círculos:</strong> Color de los círculos que marcan los puntos de conexión.</li>
+            <li><strong>Grosor del borde:</strong> Espesor del borde (1=muy fino, 4=muy Grueso). Por defecto es 3.</li>
+        </ul>
+
+        <div class="note">
+            Las líneas diagonales de los círculos se ajustan automáticamente para contrastar con el fondo, garantizando siempre buena visibilidad.
+        </div>
+
+        <h3>3.3 Cambiar fondo del lienzo</h3>
+        <p>En la sección <strong><a href="#" onclick="showPage(14)">LIENZO</a></strong>, puede cambiar el color de fondo del lienzo para mejorar el contraste o adaptar el diseño a sus preferencias:</p>
+        <ul>
+            <li>Elija un color de fondo que contraste bien con las clemas y los cables.</li>
+            <li>Colores claros como blanco o amarillo claro son los más habituales.</li>
+            <li>Colores oscuros pueden ser útiles para circuitos en pantallas, pero procure usar fondos claros al exportar para impresión.</li>
+        </ul>
+    </div>
+
+    <!-- Página 4: Componentes -->
+    <div class="page" data-title="Página 5: Componentes Electrónicos" id="page-4">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">4</span>
+        </div>
+        <h2>4. Componentes Electrónicos</h2>
+
+        <p>Puede añadir componentes desde la barra lateral (sección <strong><a href="#" onclick="showPage(4)">Componentes</a></strong>) o usando atajos de teclado:</p>
+
+        <table>
+            <tr>
+                <th>Tecla</th>
+                <th>Componente</th>
+            </tr>
+            <tr><td><span class="shortcut">V</span></td><td>Pila / Batería</td></tr>
+            <tr><td><span class="shortcut">R</span></td><td>Resistencia</td></tr>
+            <tr><td><span class="shortcut">B</span></td><td>Bombilla</td></tr>
+            <tr><td><span class="shortcut">M</span></td><td>Motor</td></tr>
+            <tr><td><span class="shortcut">I</span></td><td>Interruptor</td></tr>
+            <tr><td><span class="shortcut">P</span></td><td>Pulsador</td></tr>
+            <tr><td><span class="shortcut">S</span></td><td>Conmutador</td></tr>
+            <tr><td><span class="shortcut">L</span></td><td>LED</td></tr>
+            <tr><td><span class="shortcut">D</span></td><td>Diodo</td></tr>
+            <tr><td><span class="shortcut">C</span></td><td>Condensador</td></tr>
+            <tr><td><span class="shortcut">E</span></td><td>Condensador electrolítico</td></tr>
+            <tr><td><span class="shortcut">Q</span></td><td>Transistor</td></tr>
+            <tr><td><span class="shortcut">U</span></td><td>Terminal Arduino</td></tr>
+        </table>
+
+        <h3>4.1 Añadir componentes</h3>
+        <ol>
+            <li>Haga clic en el botón del componente en la barra lateral, o</li>
+            <li>Presione la tecla correspondiente</li>
+            <li>Make clic donde desea colocar el componente en el lienzo</li>
+        </ol>
+
+        <h3>4.2 Editar componentes</h3>
+        <ul>
+            <li><strong>Clic derecho</strong> → Editar, Invertir, Duplicar, Alinear, Eliminar</li>
+            <li><strong>Arrastrar</strong> para mover</li>
+            <li><strong>Shift+clic</strong> para selección múltiple</li>
+        </ul>
+    </div>
+
+    <!-- Página 5: Cables -->
+    <div class="page" data-title="Página 6: Cables y Conexiones" id="page-5">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">5</span>
+        </div>
+        <h2>5. Cables y Conexiones</h2>
+        <p>Los cables son las líneas que conectan los diferentes elementos del circuito. Se dibujan automáticamente con forma de senoide para evitar cruces y hacer más limpio el esquema.</p>
+
+        <h3>5.1 Crear cables</h3>
+        <p>Para crear una conexión entre dos puntos:</p>
+        <ol>
+            <li>Haga <strong>clic en un punto de conexión</strong> (aparecerán puntos azules al pasar el ratón) para iniciar un cable</li>
+            <li>Haga <strong>clic en otro punto de conexión</strong> para finalizarlo</li>
+            <li>El cable se dibuja automáticamente con forma de senoide</li>
+        </ol>
+        <div class="note">
+            <strong>Importante:</strong> No puede conectar dos puntos de la misma clema. Cada cable debe conectar diferentes elementos.
+        </div>
+
+        <h3>5.2 Atajos de teclado</h3>
+        <table>
+            <tr><th>Tecla</th><th>Acción</th></tr>
+            <tr><td><span class="shortcut">W</span></td><td>Añadir cable libre (arco) - útil para conexiones visuales</td></tr>
+            <tr><td><span class="shortcut">0</span>-<span class="shortcut">9</span></td><td>Color del cable (código IEC estándar)</td></tr>
+            <tr><td><span class="shortcut">Z</span></td><td>Auto-cableado automático - conecta componentes a clemas</td></tr>
+            <tr><td><span class="shortcut">Delete</span></td><td>Eliminar cable(s) seleccionado(s)</td></tr>
+        </table>
+
+        <h3>5.3 Código de colores IEC</h3>
+        <p>El código de colores IEC (International Electrotechnical Commission) es un estándar utilizado en Electricidad para identificar cables:</p>
+        <table>
+            <tr><th>Tecla</th><th>Color</th><th>Uso habitual</th><th>Tecla</th><th>Color</th><th>Uso habitual</th></tr>
+            <tr><td><span class="shortcut">0</span></td><td>Negro</td><td>Negativo/Señal</td><td><span class="shortcut">5</span></td><td>Verde</td><td>Señal/Datos</td></tr>
+            <tr><td><span class="shortcut">1</span></td><td>Marrón</td><td>Fase/L1</td><td><span class="shortcut">6</span></td><td>Azul</td><td>Neutro/negativo</td></tr>
+            <tr><td><span class="shortcut">2</span></td><td>Rojo</td><td>Fase/L2</td><td><span class="shortcut">7</span></td><td>Violeta</td><td>Fase/L3</td></tr>
+            <tr><td><span class="shortcut">3</span></td><td>Naranja</td><td>Señal</td><td><span class="shortcut">8</span></td><td>Gris</td><td>Señal</td></tr>
+            <tr><td><span class="shortcut">4</span></td><td>Amarillo</td><td>Tierra/Protección</td><td><span class="shortcut">9</span></td><td>Blanco</td><td>Neutro</td></tr>
+        </table>
+
+        <h3>5.4 Editar y manipulate cables</h3>
+        <ul>
+            <li><strong>Clic</strong> sobre un cable para seleccionarlo (cambiará de apariencia)</li>
+            <li><strong>Shift+clic</strong> para agregar más cables a la selección</li>
+            <li><strong>Arrastrar</strong> el cable para moverlo a otra posición</li>
+            <li><strong>Doble clic</strong> sobre un cable para añadir un nodo (punto de inflexión)</li>
+            <li><strong>Clic derecho</strong> sobre un cable para eliminarlo (con confirmación)</li>
+        </ul>
+        <div class="note">
+            <strong>Efecto imán:</strong> Al arrastrar un cable cerca de un punto de conexión (a menos de ~40 píxeles), el cable es atraído automáticamente hacia ese punto para facilitar conexiones precisas.
+        </div>
+    </div>
+
+    <!-- Página 6: Arduino -->
+    <div class="page" data-title="Página 7: Arduino" id="page-6">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">6</span>
+        </div>
+        <h2>6. Arduino</h2>
+        <p>Los terminales Arduino permiten conectar el circuito que está diseñando a una placa Arduino. Cada terminal representa un pin específico de la placa y tiene dos etiquetas: una descripción exterior y el nombre del pin interior.</p>
+        <h3>6.1 Añadir terminales Arduino</h3>
+        <p>Puede añadir terminales Arduino de varias formas:</p>
+        <ul>
+            <li>Presione <span class="shortcut">U</span> para añadir un terminal genérico</li>
+            <li>Use los botones rápidos en la sección <strong><a href="#" onclick="showPage(6)">ARDUINO</a></strong> de la barra lateral</li>
+        </ul>
+        <table>
+            <tr><th>Tipo</th><th>Descripción</th><th>Color</th></tr>
+            <tr><td>Pin Digital</td><td>D2, D3, D4... (auto-incremental)</td><td>Azul</td></tr>
+            <tr><td>Pin Analógico</td><td>A0, A1, A2... (auto-incremental)</td><td>Gris</td></tr>
+            <tr><td>GND</td><td>Tierra/Common</td><td>Negro</td></tr>
+            <tr><td>5V</td><td>Alimentación 5 Voltios</td><td>Rojo</td></tr>
+            <tr><td>3.3V</td><td>Alimentación 3.3 Voltios</td><td>Naranja</td></tr>
+        </table>
+        <div class="note">
+            <strong>Auto-incremento:</strong> Los pines digitales y analógicos se numeran automáticamente. Si ya tiene D2, el siguiente será D3.
+        </div>
+        <h3>6.2 Editar terminal Arduino</h3>
+        <ul>
+            <li>Haga <strong>clic derecho</strong> sobre el componente para editar etiqueta y pin</li>
+            <li><strong>Arrastrar</strong> para colocar el terminal donde necesite</li>
+        </ul>
+        <div class="warning">
+            <strong>Importante:</strong> Cada pin debe ser único en el proyecto. No puede haber dos componentes usando el mismo pin (por ejemplo, dos D2).
+        </div>
+    </div>
+
+    <!-- Página 7: Texto -->
+    <div class="page" data-title="Página 8: Texto y Anotaciones" id="page-7">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">7</span>
+        </div>
+        <h2>7. Texto y Anotaciones</h2>
+        <p>A veces es necesario añadir etiquetas, notas o annotate al circuito. La aplicación permite añadir texto libre en cualquier parte del lienzo.</p>
+        <h3>7.1 Añadir texto</h3>
+        <p>Puede añadir texto de varias formas:</p>
+        <ul>
+            <li>Presione <span class="shortcut">T</span> para activar el modo texto y luego haga clic donde quiera colocar el texto</li>
+            <li>O haga clic en el botón <strong>"+ Añadir texto"</strong> en la barra lateral</li>
+        </ul>
+        <p>Al añadir texto puede configurar:</p>
+        <ul>
+            <li><strong>Contenido:</strong> El texto que desea mostrar</li>
+            <li><strong>Tamaño de fuente:</strong> Entre 8 y 72 puntos</li>
+            <li><strong>Color del texto:</strong> Elija el color de las letras</li>
+            <li><strong>Color de fondo:</strong> Puede elegir un color o marcar "Transparente" para ver el fondo de la clema a través del texto</li>
+        </ul>
+        <h3>7.2 Editar texto</h3>
+        <ul>
+            <li><strong>Doble clic</strong> sobre el texto para editar su contenido</li>
+            <li><strong>Clic derecho</strong> → Editar o Eliminar</li>
+            <li><strong>Arrastrar</strong> el texto para moverlo a otra posición</li>
+        </ul>
+        <div class="note">
+            <strong>Consejo:</strong> Use texto transparente para añadir etiquetas directamente sobre clemas o componentes sin obstruir la vista.
+        </div>
+    </div>
+
+    <!-- Página 8: Navegación -->
+    <div class="page" data-title="Página 9: Navegación y Vistas" id="page-8">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">8</span>
+        </div>
+        <h2>8. Navegación y Vistas</h2>
+        <p>Puede navegar por el Lienzo, hacer zoom y desplazar la vista para trabajar cómodamente con circuitos grandes.</p>
+        <table>
+            <tr><th>Acción</th><th>Resultado</th><th>Notas</th></tr>
+            <tr><td>Rueda del ratón</td><td>Zoom (acercar/alejar)</td><td>Gira la rueda para hacer zoom</td></tr>
+            <tr><td>Shift + clic + arrastrar</td><td>Desplazar el lienzo (pan)</td><td>Mueve la vista en cualquier dirección</td></tr>
+            <tr><td><span class="shortcut">H</span></td><td>Centrar vista en las clemas</td><td>Reinicia el zoom y centra</td></tr>
+            <tr><td>Flechas</td><td>Mover componentes (2px)</td><td>Con componente seleccionado</td></tr>
+            <tr><td>Shift + Flechas</td><td>Mover componentes (10px)</td><td>Movimiento más rápido</td></tr>
+            <tr><td><span class="shortcut">Escape</span></td><td>Cancelar operación / Cerrar diálogo</td><td>Sale de cualquier modo</td></tr>
+        </table>
+        <div class="note">
+            <strong>Nota:</strong> La aplicación guarda el nivel de zoom entre sesiones si guarda el proyecto en JSON. Así puede continuar donde lo dejó.
+        </div>
+    </div>
+
+    <!-- Página 9: Alinear -->
+    <div class="page" data-title="Página 10: Alinear Componentes" id="page-9">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">9</span>
+        </div>
+        <h2>9. Alinear Componentes</h2>
+        <p>La función de alineación automática coloca los componentes seleccionados en las posiciones óptimas respecto a las clemas, facilitando el cableado y haciendo el esquema más limpio.</p>
+        <h3>Cómo usar la alineación</h3>
+        <p>Para alinear componentes:</p>
+        <ul>
+            <li>Seleccione varios componentes (con Shift+clic o el cuadro de selección)</li>
+            <li>Presione <span class="shortcut">A</span></li>
+            <li>O haga <strong>clic derecho → Alinear</strong></li>
+        </ul>
+        <h3>Qué hace la alineación</h3>
+        <ul>
+            <li>Los componentes se centran automáticamente en las clemas según sus terminales</li>
+            <li>Se colocan a 60 píxeles del borde de la clema (tanto por encima como por debajo)</li>
+            <li>Cada componente se centra en las clemas consecutivas que necesite según el número de terminales</li>
+            <li>Los cables conectados se ajustan automáticamente a la nueva posición</li>
+        </ul>
+        <h3>Requisitos</h3>
+        <ul>
+            <li>Seleccione al menos 2 componentes</li>
+            <li>Tenga suficientes clemas disponibles para los terminales de los componentes</li>
+        </ul>
+        <div class="warning">
+            Si no hay clemas suficientes, la aplicación ofrecerá añadirlas automáticamente antes de alinear.
+        </div>
+    </div>
+
+    <!-- Página 10: Guardar -->
+    <div class="page" data-title="Página 11: Guardar y Exportar" id="page-10">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">10</span>
+        </div>
+        <h2>10. Guardar y Exportar</h2>
+        <p>La aplicación ofrece varias formas de guardar su trabajo y exportar el resultado para compartir o imprimir.</p>
+
+        <h3>10.1 Exportar a diferentes formatos</h3>
+        <p>En el menú "Archivo" (botón en la barra superior) puede exportar el circuito en varios formatos:</p>
+        <ul>
+            <li><strong>JSON:</strong> Guarda el proyecto completo para poder editarlo después. Es el formato recomendado si quiere seguir trabajando más tarde.</li>
+            <li><strong>SVG:</strong> Imagen vectorial escalable sin pérdida de calidad. Ideal para incluir en documentos técnicos.</li>
+            <li><strong>PNG:</strong> Imagen de mapa de bits con fondo blanco. Bueno para compartir en redes sociales o presentaciones.</li>
+            <li><strong>JPG:</strong> Imagen comprimida, más ligera pero con menor calidad. Útil para enviar por email.</li>
+        </ul>
+
+        <h3>10.2 Guardado local</h3>
+        <p>El guardado local stores el proyecto en el navegador web sin necesidad de descargar un archivo:</p>
+        <ul>
+            <li><strong>Guardar:</strong> Guarda el proyecto actual en el almacenamiento del navegador</li>
+            <li><strong>Cargar:</strong> Recupera el último proyecto guardado</li>
+            <li><strong>Borrar:</strong> Elimina el proyecto guardado del navegador</li>
+        </ul>
+        <div class="note">
+            <strong>Ventaja:</strong> El guardado local es inmediata y no requiere usar el ratón para encontrar el archivo.
+        </div>
+
+        <h3>10.3 GitHub Gist (-avanzado-)</h3>
+        <p>Si tiene una cuenta de GitHub, puede guardar sus proyectos en la nube usando GitHub Gist:</p>
+        <ul>
+            <li><strong>Guardar:</strong> Crea o actualiza un Gist público o privado</li>
+            <li><strong>Cargar:</strong> Importa un proyecto desde un Gist existente</li>
+        </ul>
+        <p>Necesita un token de acceso personal (PAT) de GitHub. El token se guarda automáticamente en el navegador para sesiones futuras.</p>
+            <li><strong>Cargar:</strong> Importa desde un Gist</li>
+        </ul>
+
+        <div class="note">
+            El token se guarda automáticamente en el navegador para sesiones futuras.
+        </div>
+    </div>
+
+    <!-- Página 11: Tutorial PDF -->
+    <div class="page" data-title="Página 12: Tutorial de Montaje PDF" id="page-11">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">11</span>
+        </div>
+        <h2>11. Tutorial de Montaje PDF</h2>
+        <p>
+            La aplicación puede generar un documento PDF con instrucciones paso a paso para
+            construir el circuito:
+        </p>
+        <ol>
+            <li> Asegúrese de que todos los terminales estén conectados</li>
+            <li> En la barra lateral, sección <strong><a href="#" onclick="showPage(11)">Tutorial</a></strong>, haga clic en <strong>"Tutorial de montaje"</strong></li>
+            <li>Seleccione si desea incluir el dibujo del circuito</li>
+        </ol>
+        <h3>EI PDF incluirá:</h3>
+        <ul>
+            <li> Título del proyecto</li>
+            <li> Dibujo del circuito (si se selecciona)</li>
+            <li> Lista de conexiones numeradas</li>
+            <li> Casillas de verificación para seguir el montaje</li>
+        </ul>
+        <div class="warning">
+            <strong>Importante:</strong> Todos los terminales de los componentes deben estar conectados
+            para generar el tutorial.
+        </div>
+
+        <h3>11.1 Tutorial de uso</h3>
+        <p>
+            Para el tutorial de uso de la aplicación, haga clic en el botón <strong>"Tutorial de uso"</strong> en la sidebar.
+        </p>
+    </div>
+
+    <!-- Página 12: Atajos -->
+    <div class="page" data-title="Página 13: Atajos de Teclado" id="page-12">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">12</span>
+        </div>
+        <h2>12. Atajos de Teclado Completos</h2>
+        
+        <h3>Componentes</h3>
+        <table>
+            <tr><th>Tecla</th><th>Componente</th><th>Tecla</th><th>Componente</th></tr>
+            <tr><td><span class="shortcut">V</span></td><td>Pila</td><td><span class="shortcut">C</span></td><td>Condensador</td></tr>
+            <tr><td><span class="shortcut">R</span></td><td>Resistencia</td><td><span class="shortcut">E</span></td><td>Condensador electrolítico</td></tr>
+            <tr><td><span class="shortcut">B</span></td><td>Bombilla</td><td><span class="shortcut">Q</span></td><td>Transistor</td></tr>
+            <tr><td><span class="shortcut">M</span></td><td>Motor</td><td><span class="shortcut">U</span></td><td>Arduino</td></tr>
+            <tr><td><span class="shortcut">I</span></td><td>Interruptor</td><td></td><td></td></tr>
+            <tr><td><span class="shortcut">P</span></td><td>Pulsador</td><td></td><td></td></tr>
+            <tr><td><span class="shortcut">S</span></td><td>Conmutador</td><td></td><td></td></tr>
+            <tr><td><span class="shortcut">L</span></td><td>LED</td><td></td><td></td></tr>
+            <tr><td><span class="shortcut">D</span></td><td>Diodo</td><td></td><td></td></tr>
+        </table>
+
+        <h3>Herramientas</h3>
+        <table>
+            <tr><th>Tecla</th><th>Acción</th></tr>
+            <tr><td><span class="shortcut">W</span></td><td>Cable libre (arco)</td></tr>
+            <tr><td><span class="shortcut">T</span></td><td>Modo texto</td></tr>
+            <tr><td><span class="shortcut">A</span></td><td>Alinear componentes</td></tr>
+            <tr><td><span class="shortcut">Z</span></td><td>Auto-cableado</td></tr>
+            <tr><td><span class="shortcut">H</span></td><td>Centrar vista</td></tr>
+            <tr><td><span class="shortcut">Delete</span></td><td>Eliminar seleccionado</td></tr>
+            <tr><td><span class="shortcut">0</span>-<span class="shortcut">9</span></td><td>Color del cable IEC</td></tr>
+            <tr><td><span class="shortcut">Escape</span></td><td>Cancelar / Cerrar</td></tr>
+            <tr><td><span class="shortcut">Flechas</span></td><td>Mover (2px)</td></tr>
+            <tr><td><span class="shortcut">Shift+Flechas</span></td><td>Mover (10px)</td></tr>
+        </table>
+    </div>
+
+    <!-- Página 13: Limpieza -->
+    <div class="page" data-title="Página 14: Limpieza del Lienzo" id="page-13">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">13</span>
+        </div>
+        <h2>13. Limpieza del Lienzo</h2>
+        <p>La aplicación incluye opciones de limpieza masiva para borrar varios elementos a la vez, útil cuando quiere empezar de cero o limpiar elementos no deseados.</p>
+        <p>En la barra lateral, sección <strong><a href="#" onclick="showPage(13)">LIMPIAR</a></strong>:</p>
+        <ul>
+            <li><strong>Borrar todos los cables:</strong> Elimina todos los cables del circuito. Útil para empezar un nuevo diseño manteniendo clemas y componentes.</li>
+            <li><strong>borrar todos los componentes:</strong> Elimina todos los componentes excepto las clemas. También borra los cables conectados a ellos.</li>
+            <li><strong>Borrar todos los textos:</strong> Elimina todas las anotaciones de texto del lienzo.</li>
+        </ul>
+        <div class="warning">
+            ⚠️ Estas operaciones requieren confirmación antes de ejecutarse para evitar borrados accidentales.
+        </div>
+
+        <h3>Deshacer y Rehacer</h3>
+        <p>Si comete un error, no se preocupe. La aplicación guarda un historial de hasta 50 acciones:</p>
+        <ul>
+            <li>Los botones <strong>Deshacer ↩</strong> y <strong>Rehacer ↪</strong> están en la barra superior</li>
+            <li>Presione <span class="shortcut">Ctrl+Z</span> para deshacer</li>
+            <li>Presione <span class="shortcut">Ctrl+Y</span> o <span class="shortcut">Ctrl+Shift+Z</span> para rehacer</li>
+        </ul>
+        <div class="note">
+            <strong>Nota:</strong> También puede usar el historial si borra algo por error. Simplemente deshaga la acción.
+        </div>
+    </div>
+
+    <!-- Página 14: Personalizar -->
+    <div class="page" data-title="Página 15: Personalizar Opciones" id="page-14">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span class="page-number">14</span>
+        </div>
+        <h2>14. Personalizar Opciones</h2>
+        <p>La aplicación permite personalizar la apariencia de los cables, las clemas y el lienzo para adaptar el diseño a sus necesidades o preferencias estéticas.</p>
+
+        <h3>14.1 Cables (sección <a href="#" onclick="showPage(5)">CABLES</a>)</h3>
+        <p>En la sección CABLES de la barra lateral puede configurar:</p>
+        <ul>
+            <li><strong>Color del cable:</strong> Dispone de 20 colores en una paleta predeterminada (colores IEC estándar). También puede elegir un color personalizado haciendo clic en el selector de color al final de la paleta.</li>
+            <li><strong>Grosor del cable:</strong> Ajuste el grosor del cable arrastrando el deslizador o escribiendo un valor entre 1 y 8. Los cables más gruesos son más visibles pero pueden tapar otros elementos.</li>
+        </ul>
+        <div class="note">
+            <strong>Consejo:</strong> Use colores diferentes para distinguir grupos de cables (por ejemplo, todos los cables de alimentación en rojo, los de señal en azul).
+        </div>
+
+        <h3>14.2 Clemas (sección <a href="#" onclick="showPage(3)">CLEMAS</a>)</h3>
+        <p>En la sección CLEMAS de la barra lateral puede personalizar:</p>
+        <ul>
+            <li><strong>Color del trazo:</strong> Color del borde de las clemas. Por defecto es marrón (color tradicional).</li>
+            <li><strong>Color del relleno:</strong> Color del interior de las clemas. Por defecto es amarillo claro (color tradicional de las clemas).</li>
+            <li><strong>Color de los círculos:</strong> Color de los círculos que indican los puntos de conexión. Este color se ajusta automáticamente para contrastar con el fondo de la clema.</li>
+            <li><strong>Grosor del borde:</strong> Espesor del borde de las clemas (1=muy fino, 4=muy Grueso). Por defecto es 3.</li>
+            <li><strong>Bloquear color de círculos:</strong> Opción para mantener el color de los círculos fijo aunque cambie el color del relleno.</li>
+        </ul>
+
+        <h3>14.3 Lienzo (sección LIENZO)</h3>
+        <p>En la sección LIENZO de la barra lateral puede configurar:</p>
+        <ul>
+            <li><strong>Color de fondo:</strong> Elija el color de fondo del lienzo de entre más de 15 colores pastel disponibles. El blanco es el color predeterminado y más habitual para circuitos.</li>
+            <li><strong>Tamaño del lienzo:</strong> Puede aumentar o disminuir el tamaño del lienzo tanto en anchura como en altura. Cada clic en los botones + o - aumenta o disminuye el tamaño en un 10%. El tamaño máximo es 3 veces (300%) y el mínimo es 1 vez (100%). Los botones +/− están disponibles tanto para anchura como para altura.</li>
+        </ul>
+        <div class="note">
+            <strong>A saber:</strong> Aumentar el tamaño del lienzo le permite tener más espacio para colocar componentes y cables lejos de las clemas, lo cual puede ser útil para circuitos complejos.
+        </div>
+
+        <br><br><br>
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ccc; color: #666;">
+            <p style="font-size: 14pt;">© 2026 @angelmicelti</p>
+            <p>App Montaje de Circuitos con Clemas - ClemasV2</p>
+        </div>
+    </div>
+
+    <div class="no-print" style="margin-top: 20px; text-align: center; padding-bottom: 20px;">
+        <button onclick="window.print()">🖨️ Imprimir Todo el Tutorial</button>
+    </div>
+
+    <script>
+        function showPage(num) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById('page-' + num).classList.add('active');
+            document.querySelectorAll('.tab')[num].classList.add('active');
+        }
+    </script>
+</body>
+</html>
