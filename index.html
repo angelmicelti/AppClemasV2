@@ -2188,7 +2188,8 @@
                 <input type="checkbox" id="includeImagePDF" checked>
                 <span>Incluir dibujo en el PDF</span>
             </label>
-            <button class="btn-primary" id="btnTutorialPDF" style="width:100%;font-size:0.85rem;min-height:44px;">📄 Tutorial de montaje</button>
+            <button class="btn-primary" id="btnTutorialPDF" style="width:100%;font-size:0.85rem;min-height:44px;margin-bottom:0.375rem;">📋 Tutorial de montaje</button>
+            <button class="btn-info" id="btnTutorialUso" style="width:100%;font-size:0.85rem;min-height:44px;">📖 Tutorial de uso</button>
         `;
             sidebar.appendChild(tutorialSection);
 
@@ -2206,6 +2207,10 @@
                     btn.textContent = oldLabel;
                     btn.disabled = false;
                 }
+            });
+
+            document.getElementById('btnTutorialUso').addEventListener('click', () => {
+                window.open('Tutorial-ClemasV2.html', '_blank');
             });
 
 
