@@ -373,7 +373,6 @@
             <strong>Consejo:</strong> Use el botón "Archivo" (📁) para acceder a todas las opciones de exportación, guardado e importación.
         </div>
     </div>
-    </div>
 
 <!-- Página 3: Clemas -->
     <div class="page" data-title="Página 4: Trabajar con Clemas" id="page-3">
@@ -465,30 +464,59 @@
             <span class="page-number">5</span>
         </div>
         <h2>5. Cables y Conexiones</h2>
-        <p>Los cables son las líneas que conectan los diferentes elementos del circuito. Se dibujan automáticamente con forma de senoide para evitar cruces y hacer más limpio el esquema.</p>
+        <p>Los cables conectan los diferentes elementos del circuito: clemas entre sí, clemas con componentes, y clemas con el lienzo (extensiones).</p>
 
-        <h3>5.1 Crear cables</h3>
-        <p>Para crear una conexión entre dos puntos:</p>
-        <ol>
-            <li>Haga <strong>clic en un punto de conexión</strong> (aparecerán puntos azules al pasar el ratón) para iniciar un cable</li>
-            <li>Haga <strong>clic en otro punto de conexión</strong> para finalizarlo</li>
-            <li>El cable se dibuja automáticamente con forma de senoide</li>
-        </ol>
+        <h3>5.1 Crear un cable</h3>
+        <p>Hay varias formas de crear cables:</p>
+        <ul>
+            <li><strong>Clic en un punto de conexión</strong> y luego clic en otro punto para conectar directamente</li>
+            <li>Use la <strong>tecla W</strong> para crear un cable curvo independiente</li>
+            <li>Use la <strong>tecla Z</strong> para conectar automáticamente los componentes seleccionados</li>
+        </ul>
+
+        <h3>5.2 Auto-trazado con Z</h3>
+        <p>La tecla <span class="shortcut">Z</span> conecta automáticamente los componentes seleccionados a las clemas más cercanas:</p>
+        <ul>
+            <li>Seleccione los componentes a conectar (Shift+clic)</li>
+            <li>Presione <span class="shortcut">Z</span></li>
+            <li>Los cables se crean automáticamente evitando solapamientos</li>
+        </ul>
+        <p><strong>Características del auto-trazado:</strong></p>
+        <ul>
+            <li>Cada componente busca la clema más cercana disponible</li>
+            <li>Evita clemas ya ocupadas por otros cables</li>
+            <li>Calcula curvas diversas para evitar que los cables se superpongan</li>
+            <li>Si un terminal ya tiene cable, no crea otro para ese terminal</li>
+            <li>Usa una paleta de colores diversos para distinguir los cables</li>
+            <li>Para Arduino: conecta solo el terminal más cercano a la clema</li>
+        </ul>
         <div class="note">
-            <strong>Importante:</strong> No puede conectar dos puntos de la misma clema. Cada cable debe conectar diferentes elementos.
+            <strong>Tip:</strong> Use Z sin selección para conectar TODOS los componentes del proyecto.
         </div>
 
-        <h3>5.2 Atajos de teclado</h3>
-        <table>
-            <tr><th>Tecla</th><th>Acción</th></tr>
-            <tr><td><span class="shortcut">W</span></td><td>Añadir cable libre (arco) - útil para conexiones visuales</td></tr>
-            <tr><td><span class="shortcut">0</span>-<span class="shortcut">9</span></td><td>Color del cable (código IEC estándar)</td></tr>
-            <tr><td><span class="shortcut">Z</span></td><td>Auto-cableado automático - conecta componentes a clemas</td></tr>
-            <tr><td><span class="shortcut">Delete</span></td><td>Eliminar cable(s) seleccionado(s)</td></tr>
-        </table>
+        <h3>5.3 Puntos de conexión</h3>
+        <p>Los puntos de conexión aparecen cuando pasa el cursor sobre:</p>
+        <ul>
+            <li>Las clemas (pequeños círculos en los extremos)</li>
+            <li>Los terminales de los componentes</li>
+            <li>Los extremos de cables existentes (para extenderlos)</li>
+        </ul>
 
-        <h3>5.3 Código de colores IEC</h3>
-        <p>El código de colores IEC (International Electrotechnical Commission) es un estándar utilizado en Electricidad para identificar cables:</p>
+        <h3>5.4 Editar y manipular cables</h3>
+        <ul>
+            <li><strong>Seleccionar</strong>: Clic sobre un cable para seleccionarlo (cambiará de apariencia). Use <strong>Shift+clic</strong> para selección múltiple.</li>
+            <li><strong>Mover</strong>: Arrastre el cable para moverlo entero a otra posición.</li>
+            <li><strong>Nodos de control</strong>: <strong>Doble clic</strong> sobre un cable para añadir un nodo (punto de inflexión).</li>
+            <li><strong>Eliminar</strong>: <strong>Clic derecho</strong> sobre un cable para eliminarlo (con confirmación), o clic derecho sobre un nodo para quitarlo.</li>
+            <li><strong>Manejadores</strong>: Los puntos de control (asas) permiten ajustar la curvatura con precisión.</li>
+        </ul>
+        <div class="note">
+            <strong>Efecto imán:</strong> Al arrastrar un cable cerca de un punto de conexión (a menos de ~40 píxeles), el cable es atraído automáticamente hacia ese punto para facilitar conexiones precisas.
+        </div>
+
+        <h3>5.5 Color del cable y Código IEC</h3>
+        <p>Cambie el color del cable seleccionado en la barra lateral (panel <strong>"CABLES → Color de los cables"</strong>) o use las teclas <span class="shortcut">0</span> a <span class="shortcut">9</span> para códigos de color IEC (International Electrotechnical Commission):</p>
+        
         <table>
             <tr><th>Tecla</th><th>Color</th><th>Uso habitual</th><th>Tecla</th><th>Color</th><th>Uso habitual</th></tr>
             <tr><td><span class="shortcut">0</span></td><td>Negro</td><td>Negativo/Señal</td><td><span class="shortcut">5</span></td><td>Verde</td><td>Señal/Datos</td></tr>
@@ -498,17 +526,8 @@
             <tr><td><span class="shortcut">4</span></td><td>Amarillo</td><td>Tierra/Protección</td><td><span class="shortcut">9</span></td><td>Blanco</td><td>Neutro</td></tr>
         </table>
 
-        <h3>5.4 Editar y manipulate cables</h3>
-        <ul>
-            <li><strong>Clic</strong> sobre un cable para seleccionarlo (cambiará de apariencia)</li>
-            <li><strong>Shift+clic</strong> para agregar más cables a la selección</li>
-            <li><strong>Arrastrar</strong> el cable para moverlo a otra posición</li>
-            <li><strong>Doble clic</strong> sobre un cable para añadir un nodo (punto de inflexión)</li>
-            <li><strong>Clic derecho</strong> sobre un cable para eliminarlo (con confirmación)</li>
-        </ul>
-        <div class="note">
-            <strong>Efecto imán:</strong> Al arrastrar un cable cerca de un punto de conexión (a menos de ~40 píxeles), el cable es atraído automáticamente hacia ese punto para facilitar conexiones precisas.
-        </div>
+        <h3>5.6 Grosor del cable</h3>
+        <p>En la barra lateral, panel <strong>"CABLES → Grosor de los cables"</strong></p>
     </div>
 
     <!-- Página 6: Arduino -->
@@ -597,7 +616,7 @@
         </div>
     </div>
 
-    <!-- Página 9: Alinear -->
+<!-- Página 9: Alinear -->
     <div class="page" data-title="Página 10: Alinear Componentes" id="page-9">
         <div style="text-align: right; margin-bottom: 10px;">
             <span class="page-number">9</span>
@@ -617,6 +636,8 @@
             <li>Se colocan a 60 píxeles del borde de la clema (tanto por encima como por debajo)</li>
             <li>Cada componente se centra en las clemas consecutivas que necesite según el número de terminales</li>
             <li>Los cables conectados se ajustan automáticamente a la nueva posición</li>
+            <li>Si hay Arduino en la selección, se ordenan alfabéticamente por su nombre/etiqueta</li>
+            <li>Los componentes que ya tienen cables conectados a una clema pueden reutilizar esa misma clema al re-alinear</li>
         </ul>
         <h3>Requisitos</h3>
         <ul>
@@ -626,6 +647,12 @@
         <div class="warning">
             Si no hay clemas suficientes, la aplicación ofrecerá añadirlas automáticamente antes de alinear.
         </div>
+        <h3>Casos especiales</h3>
+        <ul>
+            <li><strong>Arduino:</strong> Solo usa 1 clema aunque tenga varios pines. El resto de pines quedan "flotando" (sin conectar a clema).</li>
+            <li><strong>Clema lado correcto:</strong> La alineación solo bloquea las clemas del mismo lado (arriba o abajo) donde se colocarán los componentes.</li>
+<li><strong>Componentes previamente cableados:</strong> Las clemas que ya tienen cable a un componente en la selección se liberan durante la re-alineación.</li>
+        </ul>
     </div>
 
     <!-- Página 10: Guardar -->
