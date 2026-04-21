@@ -967,6 +967,7 @@
 
         #splashScreen.fade-out {
             opacity: 0;
+            pointer-events: none;
         }
 
         #splashScreen .splash-title {
@@ -1698,6 +1699,43 @@
             '#ccfbf1', '#f1f5f9', '#fef2f2', '#ecfdf5', '#fff7ed',
         ];
 
+        const ARDUINO_PASTEL_COLORS = ['#fecaca', '#fef08a', '#bbf7d0', '#bfdbfe', '#e9d5ff', '#fed7aa', '#fbcfe8', '#ccfbf1', '#cbd5e1'];
+
+        // Color utility functions (global scope)
+        function darkenColor(hex, amount) {
+            let r = parseInt(hex.slice(1, 3), 16);
+            let g = parseInt(hex.slice(3, 5), 16);
+            let b = parseInt(hex.slice(5, 7), 16);
+            r = Math.max(0, Math.min(255, r - amount));
+            g = Math.max(0, Math.min(255, g - amount));
+            b = Math.max(0, Math.min(255, b - amount));
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+        function getContrastingColor(hexColor) {
+            const r = parseInt(hexColor.slice(1, 3), 16);
+            const g = parseInt(hexColor.slice(3, 5), 16);
+            const b = parseInt(hexColor.slice(5, 7), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.5 ? '#1f2937' : '#ffffff';
+        }
+
+        // Single source of truth for component display names (Spanish)
+        const COMPONENT_NAMES = {
+            battery: 'Pila',
+            resistor: 'Resistencia',
+            bulb: 'Bombilla',
+            motor: 'Motor',
+            switch: 'Interruptor',
+            pushbutton: 'Pulsador',
+            commutator: 'Conmutador',
+            led: 'LED',
+            diode: 'Diodo',
+            capacitor: 'Condensador',
+            electrolytic: 'Electrolítico',
+            transistor: 'Transistor',
+            arduino: 'Arduino'
+        };
+
         // Helper: get currently selected wire indices (single or multi)
         function getSelectedWireSet() {
             if (APP.selectedWireIndices.size > 0) return new Set(APP.selectedWireIndices);
@@ -1709,6 +1747,154 @@
             if (APP.selectedTexts.size > 0) return new Set(APP.selectedTexts);
             if (APP.selectedText !== null) return new Set([APP.selectedText]);
             return new Set();
+        }
+
+        // Centralized selection clearing
+        function clearAllSelections() {
+            APP.selectedComponent = null;
+            APP.selectedWire = null;
+            APP.selectedWireIndices.clear();
+            APP.selectedText = null;
+            APP.selectedTexts.clear();
+        }
+
+        // Negative-index encoding for components in selectedWireIndices
+        function compToSelIdx(ci) { return -ci - 1; }
+        function selIdxToCompIdx(si) { return si < 0 ? -si - 1 : null; }
+        function getSelectedCompIndices() {
+            const set = new Set();
+            APP.selectedWireIndices.forEach(i => { if (i < 0) set.add(-i - 1); });
+            if (APP.selectedComponent !== null) set.add(APP.selectedComponent);
+            return set;
+        }
+
+        // Render helpers
+        function renderContent() {
+            renderComponents();
+            renderWires();
+            renderTexts();
+        }
+        function renderAll() {
+            renderClemas();
+            renderConnectionPoints();
+            renderContent();
+        }
+
+        // APP computed property helpers
+        function getClemaCenterY() { return APP.rectStartY + APP.rectH / 2; }
+        function getBtnSize() { return Math.min(APP.b * 0.22, 14); }
+        function getLabelFontSize() { return Math.max(12, APP.b * 0.22); }
+
+        // Context menu factory
+        function createContextMenu(menuId, buttonsHtml, e, maxWidth, maxHeight) {
+            const menu = document.createElement('div');
+            menu.id = menuId;
+            menu.style.cssText = `
+            position:fixed;z-index:2000;background:var(--bg-card);border:1px solid var(--border-strong);
+            border-radius:0.375rem;box-shadow:var(--shadow-lg);padding:0.25rem;
+            display:flex;flex-direction:column;gap:0.125rem;font-size:0.8rem;
+        `;
+            menu.innerHTML = buttonsHtml;
+            document.body.appendChild(menu);
+
+            menu.style.left = Math.min(e.clientX, window.innerWidth - maxWidth) + 'px';
+            menu.style.top = Math.min(e.clientY, window.innerHeight - maxHeight) + 'px';
+
+            const dismissMenu = () => { menu.remove(); document.removeEventListener('click', dismissMenu); };
+            setTimeout(() => document.addEventListener('click', dismissMenu), 10);
+            return dismissMenu;
+        }
+
+        // Find nearest point from a set of connection points
+        function findNearestPoint(targetX, targetY, points) {
+            let nearestPt = null;
+            let nearestDist = Infinity;
+            points.forEach(pt => {
+                const dist = Math.hypot(pt.x - targetX, pt.y - targetY);
+                if (dist < nearestDist) { nearestPt = pt; nearestDist = dist; }
+            });
+            return { point: nearestPt, dist: nearestDist };
+        }
+
+        // Generate unique label for a component type
+        function generateUniqueLabel(type) {
+            const base = COMPONENT_NAMES[type] || type;
+            let count = 1;
+            let uniqueLabel = `${base} ${count}`;
+            while (APP.components.some(c => c.label === uniqueLabel)) {
+                count++;
+                uniqueLabel = `${base} ${count}`;
+            }
+            return uniqueLabel;
+        }
+
+        // Get next available Arduino D-pin
+        function getNextArduinoPin() {
+            let dPinsUsed = new Set();
+            APP.components.forEach(c => {
+                if (c.type === 'arduino' && c.value && c.value.startsWith('D')) {
+                    const num = parseInt(c.value.substring(1));
+                    if (!isNaN(num)) dPinsUsed.add(num);
+                }
+            });
+            let nextPin = 2;
+            while (dPinsUsed.has(nextPin)) nextPin++;
+            return `D${nextPin}`;
+        }
+
+        // Push-out-of-clema helper: push a component out of the clema area
+        function pushOutOfClema(comp) {
+            const rect = getComponentBoundingRect(comp);
+            const clemaCenterY = getClemaCenterY();
+            if (comp.y < clemaCenterY) {
+                comp.y = APP.rectStartY - (rect.bottom - comp.y) - 5;
+            } else {
+                comp.y = APP.rectStartY + APP.rectH + (comp.y - rect.top) + 5;
+            }
+        }
+
+        // Update wire endpoints connected to a component
+        function updateComponentWireEndpoints(comp, ci) {
+            const absTerminals = getComponentAbsoluteTerminals(comp);
+            APP.wires.forEach(w => {
+                ['start', 'end'].forEach(ep => {
+                    if (w[ep].id && w[ep].id.startsWith(`comp_${ci}_`)) {
+                        const tid = w[ep].id.split('_').pop();
+                        const term = absTerminals.find(tm => tm.id === tid);
+                        if (term) { w[ep].x = term.x; w[ep].y = term.y; }
+                    }
+                });
+            });
+        }
+
+        // GitHub token helpers
+        function getGithubToken() {
+            return document.getElementById('ghToken').value.trim() || document.getElementById('ghLoadToken').value.trim();
+        }
+        function setGithubToken(token) {
+            document.getElementById('ghToken').value = token;
+            document.getElementById('ghLoadToken').value = token;
+        }
+        function getAuthHeader(token) {
+            return token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+        }
+
+        // Modal helpers
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // State serialization helper for undo/redo
+        function serializeState() {
+            return JSON.stringify({
+                wires: APP.wires,
+                texts: APP.texts,
+                components: APP.components,
+                N: APP.N,
+                b: APP.b,
+                rectStartY: APP.rectStartY,
+                rectH: APP.rectH,
+                clemaLineAngles: APP._clemaLineAngles ? [...APP._clemaLineAngles] : null
+            });
         }
 
         // ============================================================
@@ -2293,16 +2479,16 @@
 
         function setupEventListeners() {
             document.getElementById('btnStart').addEventListener('click', startApplication);
-            document.getElementById('btnNew').addEventListener('click', () => document.getElementById('newProjectDialog').classList.remove('hidden'));
-            document.getElementById('btnNewCancel').addEventListener('click', () => document.getElementById('newProjectDialog').classList.add('hidden'));
+            document.getElementById('btnNew').addEventListener('click', () => openModal('newProjectDialog'));
+            document.getElementById('btnNewCancel').addEventListener('click', () => closeModal('newProjectDialog'));
             document.getElementById('btnNewConfirm').addEventListener('click', resetToInit);
             document.getElementById('btnUndo').addEventListener('click', undo);
 
             // Help modal
-            document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').classList.remove('hidden'));
-            document.getElementById('btnHelpClose').addEventListener('click', () => document.getElementById('helpModal').classList.add('hidden'));
+            document.getElementById('btnHelp').addEventListener('click', () => openModal('helpModal'));
+            document.getElementById('btnHelpClose').addEventListener('click', () => closeModal('helpModal'));
             document.getElementById('helpModal').addEventListener('click', (e) => {
-                if (e.target.id === 'helpModal') document.getElementById('helpModal').classList.add('hidden');
+                if (e.target.id === 'helpModal') closeModal('helpModal');
             });
 
             document.getElementById('btnRedo').addEventListener('click', redo);
@@ -2328,7 +2514,7 @@
             document.getElementById('btnLoadLocal').addEventListener('click', loadFromLocal);
             document.getElementById('btnDeleteLocal').addEventListener('click', deleteLocal);
             document.getElementById('btnGithubSave').addEventListener('click', openGithubSaveDialog);
-            document.getElementById('btnGhSaveCancel').addEventListener('click', () => document.getElementById('githubSaveDialog').classList.add('hidden'));
+            document.getElementById('btnGhSaveCancel').addEventListener('click', () => closeModal('githubSaveDialog'));
             document.getElementById('btnGhSaveConfirm').addEventListener('click', () => saveToGithub(false));
             document.getElementById('btnGhSaveAsNew').addEventListener('click', () => saveToGithub(true));
             document.getElementById('btnLoadTokenSave').addEventListener('click', () => document.getElementById('hiddenTokenInput').click());
@@ -2346,16 +2532,16 @@
                 searchGithubFile();
             });
             document.getElementById('btnGithubLoad').addEventListener('click', () => {
-                document.getElementById('githubLoadDialog').classList.remove('hidden');
-                document.getElementById('ghFileList').classList.add('hidden');
+                openModal('githubLoadDialog');
+                closeModal('ghFileList');
                 autoFillToken();
             });
-            document.getElementById('btnGhLoadCancel').addEventListener('click', () => document.getElementById('githubLoadDialog').classList.add('hidden'));
+            document.getElementById('btnGhLoadCancel').addEventListener('click', () => closeModal('githubLoadDialog'));
             document.getElementById('btnGhLoadFiles').addEventListener('click', loadFileListFromGithub);
             document.getElementById('btnLoadTokenLoad').addEventListener('click', () => document.getElementById('hiddenTokenInput').click());
             // hiddenTokenInput already handled above
             document.getElementById('btnAddTextCancel').addEventListener('click', () => {
-                document.getElementById('addTextDialog').classList.add('hidden');
+                closeModal('addTextDialog');
                 textPlacementPos = null;
                 editingTextIndex = null;
             });
@@ -2430,7 +2616,7 @@
                 if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
                     const compIndices = new Set();
                     APP.selectedWireIndices.forEach(idx => {
-                        if (idx < 0) compIndices.add(-idx - 1);
+                        if (idx < 0) compIndices.add(selIdxToCompIdx(idx));
                     });
                     if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
 
@@ -2465,7 +2651,7 @@
                     e.preventDefault();
                     saveUndoState();
 
-                    const blockCenterY = APP.rectStartY + APP.rectH / 2;
+                    const blockCenterY = getClemaCenterY();
                     const blockLeft = APP.margin;
                     const blockRight = APP.margin + APP.N * APP.b;
                     const blockMidX = (blockLeft + blockRight) / 2;
@@ -2537,7 +2723,7 @@
 
                     // Collect ALL selected items
                     const compIndices = new Set();
-                    APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(-idx - 1); });
+                    APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(selIdxToCompIdx(idx)); });
                     if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
 
                     const wireSet = APP.selectedWireIndices.size > 0
@@ -2614,7 +2800,7 @@
 
             // Arduino Edit Modal Listeners
             document.getElementById('btnEditArduinoCancel').addEventListener('click', () => {
-                document.getElementById('editArduinoDialog').classList.add('hidden');
+                closeModal('editArduinoDialog');
             });
 
             document.getElementById('btnEditArduinoConfirm').addEventListener('click', () => {
@@ -2657,9 +2843,8 @@
         // RESET TO INIT (New Project)
         // ============================================================
         function resetToInit() {
-            document.getElementById('newProjectDialog').classList.add('hidden');
-            APP.components = [];
-            APP.selectedComponent = null;
+            closeModal('newProjectDialog');
+            clearAllSelections();
             APP.draggingComponent = null;
             APP.dragComponentOffset = null;
             APP._draggingComponents = null;
@@ -2671,10 +2856,6 @@
             APP.texts = [];
             APP.undoStack = [];
             APP.redoStack = [];
-            APP.selectedWireIndices.clear();
-            APP.selectedTexts.clear();
-            APP.selectedWire = null;
-            APP.selectedText = null;
             editingTextIndex = null;
             APP.canvasWidthScale = 1;
             APP.canvasHeightScale = 1;
@@ -2704,7 +2885,7 @@
             initSidebar();
 
             // Show init dialog
-            document.getElementById('initDialog').classList.remove('hidden');
+            openModal('initDialog');
             setStatus('Nuevo proyecto - Configure los parámetros e inicie');
         }
 
@@ -2723,7 +2904,7 @@
             APP.rectStartY = APP.margin + 50;
 
             // Hide dialog first, then initialize
-            document.getElementById('initDialog').classList.add('hidden');
+            closeModal('initDialog');
 
             try {
                 initSvg();
@@ -2738,7 +2919,7 @@
                 console.error('Error initializing application:', err);
                 alert('Error al iniciar la aplicación: ' + err.message);
                 // Show dialog again if there was an error
-                document.getElementById('initDialog').classList.remove('hidden');
+                openModal('initDialog');
             }
         }
 
@@ -2751,7 +2932,7 @@
             const totalH = APP.rectH + 2 * APP.margin + 400;
 
             // Extra horizontal padding for tooltip visibility on the sides
-            const btnSize = Math.min(APP.b * 0.22, 14);
+            const btnSize = getBtnSize();
             const sideExtra = Math.max(btnSize * 5, 40);
 
             // Total base width: clema block + equal padding on both sides
@@ -2769,7 +2950,7 @@
 
             // Center vertically: clema block should be in the middle of the visible area
             // Clema starts at rectStartY and has height rectH
-            const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+            const clemaCenterY = getClemaCenterY();
             const visibleCenterY = totalH / 2;
             const viewBoxY = clemaCenterY - visibleCenterY;
 
@@ -2830,7 +3011,7 @@
             const totalW = APP.N * APP.b;
             const totalH = APP.rectH + 2 * APP.margin + 400;
 
-            const btnSize = Math.min(APP.b * 0.22, 14);
+            const btnSize = getBtnSize();
             const sideExtra = Math.max(btnSize * 5, 40);
             const padding = Math.max(APP.margin + sideExtra, 60);
 
@@ -2861,7 +3042,7 @@
             const totalW = APP.N * APP.b;
             const totalH = APP.rectH + 2 * APP.margin + 400;
 
-            const btnSize = Math.min(APP.b * 0.22, 14);
+            const btnSize = getBtnSize();
             const sideExtra = Math.max(btnSize * 5, 40);
             const padding = Math.max(APP.margin + sideExtra, 60);
 
@@ -2879,7 +3060,7 @@
             const viewBoxX = APP.margin - padding;
 
             // Center vertically: clema block should be in the middle of the visible area
-            const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+            const clemaCenterY = getClemaCenterY();
             const visibleCenterY = totalH / 2;
             const viewBoxY = clemaCenterY - visibleCenterY;
 
@@ -2964,29 +3145,7 @@
             const circleColor = APP.clemaCircleColor;
             const strokeWidth = APP.clemaStrokeWidth;
 
-            // Calculate circle fill: slightly darker than clema fill
-            function darkenColor(hex, amount) {
-                let r = parseInt(hex.slice(1, 3), 16);
-                let g = parseInt(hex.slice(3, 5), 16);
-                let b = parseInt(hex.slice(5, 7), 16);
-                r = Math.max(0, Math.min(255, r - amount));
-                g = Math.max(0, Math.min(255, g - amount));
-                b = Math.max(0, Math.min(255, b - amount));
-                return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-            }
             const effectiveCircleColor = darkenColor(fillColor, 60);
-
-            // Calculate contrasting color for diagonal lines (auto-contrast)
-            function getContrastingColor(hexColor) {
-                // Parse hex to RGB
-                const r = parseInt(hexColor.slice(1, 3), 16);
-                const g = parseInt(hexColor.slice(3, 5), 16);
-                const b = parseInt(hexColor.slice(5, 7), 16);
-                // Relative luminance (per WCAG 2.0)
-                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                // If circle is dark, use white line; if light, use dark line
-                return luminance > 0.5 ? '#1f2937' : '#ffffff';
-            }
             const lineColor = getContrastingColor(effectiveCircleColor);
 
             for (let i = 0; i < N; i++) {
@@ -3205,11 +3364,7 @@
 
             // Clear and re-render
             clear(APP.clemaGroup);
-            renderClemas();
-            renderConnectionPoints();
-            renderComponents();
-            renderTexts();
-            renderWires();
+            renderAll();
 
             setStatus(`Clemas: ${APP.N} | Nueva clema añadida a la ${side === 'left' ? 'izquierda' : 'derecha'}`);
         }
@@ -3281,11 +3436,7 @@
 
             // Clear and re-render
             clear(APP.clemaGroup);
-            renderClemas();
-            renderConnectionPoints();
-            renderComponents();
-            renderTexts();
-            renderWires();
+            renderAll();
 
             setStatus(`Clemas: ${APP.N} | Clema de la ${sideName} eliminada`);
         }
@@ -3384,7 +3535,7 @@
 
             const totalW = APP.N * APP.b;
             const totalH = APP.rectH + 2 * APP.margin + 400;
-            const btnSize = Math.min(APP.b * 0.22, 14);
+            const btnSize = getBtnSize();
             const sideExtra = Math.max(btnSize * 5, 40);
             const padding = Math.max(APP.margin + sideExtra, 60);
             const baseWidth = totalW + 2 * padding;
@@ -3523,11 +3674,11 @@
                 const ci = +g.dataset.componentIndex;
                 if (e.shiftKey) {
                     // Multi-select: use selectedWireIndices with negative indices
-                    const negIdx = -ci - 1;
+                    const negIdx = compToSelIdx(ci);
 
                     // Migrate existing single selection to multi-select set
                     if (APP.selectedComponent !== null) {
-                        APP.selectedWireIndices.add(-APP.selectedComponent - 1);
+                        APP.selectedWireIndices.add(compToSelIdx(APP.selectedComponent));
                         APP.selectedComponent = null;
                     }
 
@@ -3554,14 +3705,8 @@
                 APP.justMadeSelection = false;
                 return; // Selection made by box, don't start a wire or clear anything
             } else if (APP.selectedWire !== null || APP.selectedText !== null || APP.selectedWireIndices.size > 0 || APP.selectedTexts.size > 0 || APP.selectedComponent !== null) {
-                APP.selectedWire = null;
-                APP.selectedWireIndices.clear();
-                APP.selectedText = null;
-                APP.selectedTexts.clear();
-                APP.selectedComponent = null;
-                renderWires();
-                renderTexts();
-                renderComponents();
+                clearAllSelections();
+                renderContent();
                 return; // Deselection happened, don't start a wire
             }
 
@@ -3746,7 +3891,7 @@
                 unitSection.style.display = 'none';
             }
 
-            document.getElementById('editComponentDialog').classList.remove('hidden');
+            openModal('editComponentDialog');
             // Focus: value field if visible, otherwise label
             setTimeout(() => {
                 if (cfg.valueLbl) valueInput.focus();
@@ -3779,14 +3924,14 @@
                 comp.unit = document.getElementById('editCompUnit').value;
             }
 
-            document.getElementById('editComponentDialog').classList.add('hidden');
+            closeModal('editComponentDialog');
             _editCompIndex = null;
             renderComponents();
             setStatus(`Componente ${comp.type} actualizado.`);
         }
 
         function cancelEditComponent() {
-            document.getElementById('editComponentDialog').classList.add('hidden');
+            closeModal('editComponentDialog');
             _editCompIndex = null;
         }
 
@@ -3812,7 +3957,7 @@
         // Helper: count all selected items across all types
         function countAllSelectedItems() {
             const compIndices = new Set();
-            APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(-idx - 1); });
+            APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(selIdxToCompIdx(idx)); });
             if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
             const wireCount = APP.selectedWireIndices.size > 0
                 ? [...APP.selectedWireIndices].filter(i => i >= 0).length
@@ -3825,7 +3970,7 @@
         function deleteSelectedItems() {
             // Collect component indices
             const compIndices = new Set();
-            APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(-idx - 1); });
+            APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(selIdxToCompIdx(idx)); });
             if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
 
             // Collect wire indices (only positive)
@@ -3873,15 +4018,9 @@
             });
 
             // Clear all selections
-            APP.selectedComponent = null;
-            APP.selectedWire = null;
-            APP.selectedWireIndices.clear();
-            APP.selectedText = null;
-            APP.selectedTexts.clear();
+            clearAllSelections();
 
-            renderComponents();
-            renderWires();
-            renderTexts();
+            renderContent();
             setStatus(`${compIndices.size + wireIndices.length + textIndices.length} elemento(s) eliminado(s)`);
         }
 
@@ -3892,7 +4031,7 @@
             // Determine which components to auto-wire
             const compIndices = new Set();
             APP.selectedWireIndices.forEach(idx => {
-                if (idx < 0) compIndices.add(-idx - 1);
+                if (idx < 0) compIndices.add(selIdxToCompIdx(idx));
             });
             if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
 
@@ -3927,7 +4066,7 @@
                 
                 // Si es un Arduino, trazamos un solo cable desde el terminal más próximo a la clema
                 if (comp.type === 'arduino') {
-                    const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+                    const clemaCenterY = getClemaCenterY();
                     terminals.sort((a, b) => {
                         const distA = Math.abs(a.y - clemaCenterY);
                         const distB = Math.abs(b.y - clemaCenterY);
@@ -3948,7 +4087,7 @@
                     const terminalId = `comp_${ci}_${term.id}`;
                     if (wiredTerminalIds.has(terminalId)) return;
                     // Determine which side the terminal faces
-                    const blockCenterY = APP.rectStartY + APP.rectH / 2;
+                    const blockCenterY = getClemaCenterY();
                     const terminalWorldY = comp.y + term.y;
                     const facesTop = terminalWorldY < blockCenterY;
 
@@ -4010,7 +4149,7 @@
                         const gentleOffset = Math.max(dist * 0.04, 4);
                         const midY2 = (term.y + targetPt.y) / 2;
                         const directionSign2 = dx < 0 ? -1 : 1;
-                        const regionSign2 = midY2 < APP.rectStartY + APP.rectH / 2 ? -1 : 1;
+                        const regionSign2 = midY2 < getClemaCenterY() ? -1 : 1;
                         const gSign = regionSign2 * directionSign2;
                         h1x = term.x + dirX * tangentLen + (-dirY) * gentleOffset * gSign;
                         h1y = term.y + dirY * tangentLen + dirX * gentleOffset * gSign;
@@ -4062,7 +4201,7 @@
         function alignSelectedComponents() {
             const compIndices = new Set();
             APP.selectedWireIndices.forEach(idx => {
-                if (idx < 0) compIndices.add(-idx - 1);
+                if (idx < 0) compIndices.add(selIdxToCompIdx(idx));
             });
             if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
 
@@ -4408,10 +4547,7 @@
                 }
             });
 
-            renderClemas();
-            renderConnectionPoints();
-            renderComponents();
-            renderWires();
+            renderAll();
 
             const side = placeAbove ? 'arriba' : 'debajo';
             setStatus(`${allocations.length} componentes alineados ${side} de la clema (offset ${ALIGN_OFFSET}px)`);
@@ -4432,28 +4568,14 @@
                 const existing = document.getElementById('compContextMenu');
                 if (existing) existing.remove();
 
-                const menu = document.createElement('div');
-                menu.id = 'compContextMenu';
-                menu.style.cssText = `
-                position:fixed;z-index:2000;background:var(--bg-card);border:1px solid var(--border-strong);
-                border-radius:0.375rem;box-shadow:var(--shadow-lg);padding:0.25rem;
-                display:flex;flex-direction:column;gap:0.125rem;font-size:0.8rem;
-            `;
-                menu.innerHTML = `
+                const compButtons = `
                 <button class="btn-secondary" id="compCtxEdit" style="font-size:0.75rem;padding:0.25rem 0.5rem;">✏️ Editar</button>
                 <button class="btn-secondary" id="compCtxFlip" style="font-size:0.75rem;padding:0.25rem 0.5rem;">↔️ Invertir</button>
                 <button class="btn-secondary" id="compCtxDuplicate" style="font-size:0.75rem;padding:0.25rem 0.5rem;">📋 Duplicar</button>
                 <button class="btn-secondary" id="compCtxAlign" style="font-size:0.75rem;padding:0.25rem 0.5rem;">↕️ Alinear</button>
                 <button class="btn-danger" id="compCtxDel" style="font-size:0.75rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button>
             `;
-                document.body.appendChild(menu);
-
-                // Position near click
-                menu.style.left = Math.min(e.clientX, window.innerWidth - 160) + 'px';
-                menu.style.top = Math.min(e.clientY, window.innerHeight - 90) + 'px';
-
-                const dismissMenu = () => { menu.remove(); document.removeEventListener('click', dismissMenu); };
-                setTimeout(() => document.addEventListener('click', dismissMenu), 10);
+                const dismissMenu = createContextMenu('compContextMenu', compButtons, e, 160, 90);
 
                 document.getElementById('compCtxEdit').addEventListener('click', () => {
                     dismissMenu();
@@ -4469,21 +4591,7 @@
                     // Toggle horizontal flip
                     comp.flipped = !comp.flipped;
                     // Update connected wire endpoints
-                    const absTerminals = getComponentAbsoluteTerminals(comp);
-                    APP.wires.forEach(w => {
-                        if (w.start.id && w.start.id.startsWith('comp_') || w.end.id && w.end.id.startsWith('comp_')) {
-                            if (w.start.id && w.start.id.startsWith(`comp_${ci}_`)) {
-                                const tid = w.start.id.split('_').pop();
-                                const term = absTerminals.find(tm => tm.id === tid);
-                                if (term) { w.start.x = term.x; w.start.y = term.y; }
-                            }
-                            if (w.end.id && w.end.id.startsWith(`comp_${ci}_`)) {
-                                const tid = w.end.id.split('_').pop();
-                                const term = absTerminals.find(tm => tm.id === tid);
-                                if (term) { w.end.x = term.x; w.end.y = term.y; }
-                            }
-                        }
-                    });
+                    updateComponentWireEndpoints(comp, ci);
                     renderComponents();
                     renderWires();
                     setStatus(`Componente ${comp.type} invertido`);
@@ -4500,38 +4608,14 @@
                     };
                     
                     // Generate new unique label
-                    const componentBaseNames = {
-                        battery: 'Pila', resistor: 'Resistencia', bulb: 'Bombilla', motor: 'Motor',
-                        switch: 'Interruptor', pushbutton: 'Pulsador', commutator: 'Conmutador',
-                        led: 'LED', diode: 'Diodo', capacitor: 'Condensador', electrolytic: 'Electrolítico',
-                        transistor: 'Transistor', arduino: 'Arduino'
-                    };
-                    const base = componentBaseNames[dup.type] || dup.type;
-                    let count = 1;
-                    let uniqueLabel = `${base} ${count}`;
-                    while (APP.components.some(c => c.label === uniqueLabel)) {
-                        count++;
-                        uniqueLabel = `${base} ${count}`;
-                    }
-                    dup.label = uniqueLabel;
+                    dup.label = generateUniqueLabel(dup.type);
 
                     if (dup.type === 'arduino') {
-                        // Generate new unique Arduino pin
-                        let dPinsUsed = new Set();
-                        APP.components.forEach(c => {
-                            if (c.type === 'arduino' && c.value && c.value.startsWith('D')) {
-                                const num = parseInt(c.value.substring(1));
-                                if (!isNaN(num)) dPinsUsed.add(num);
-                            }
-                        });
-                        let nextPin = 2;
-                        while (dPinsUsed.has(nextPin)) nextPin++;
-                        dup.value = `D${nextPin}`;
+                        dup.value = getNextArduinoPin();
                         
                         // Assign sequential color based on number of existing arduinos
-                        const pastelColors = ['#fecaca', '#fef08a', '#bbf7d0', '#bfdbfe', '#e9d5ff', '#fed7aa', '#fbcfe8', '#ccfbf1', '#cbd5e1'];
                         const arduinosCount = APP.components.filter(c => c.type === 'arduino').length;
-                        dup.color = pastelColors[arduinosCount % pastelColors.length];
+                        dup.color = ARDUINO_PASTEL_COLORS[arduinosCount % ARDUINO_PASTEL_COLORS.length];
                     }
 
                     APP.components.push(dup);
@@ -4543,7 +4627,7 @@
                 document.getElementById('compCtxAlign').addEventListener('click', () => {
                     dismissMenu();
                     // Add the right-clicked component to selection if not already selected
-                    const negIdx = -ci - 1;
+                    const negIdx = compToSelIdx(ci);
                     if (!APP.selectedWireIndices.has(negIdx) && APP.selectedComponent !== ci) {
                         APP.selectedWireIndices.add(negIdx);
                         APP.selectedComponent = null;
@@ -4607,24 +4691,11 @@
                 const existing = document.getElementById('textContextMenu');
                 if (existing) existing.remove();
 
-                const menu = document.createElement('div');
-                menu.id = 'textContextMenu';
-                menu.style.cssText = `
-                position:fixed;z-index:2000;background:var(--bg-card);border:1px solid var(--border-strong);
-                border-radius:0.375rem;box-shadow:var(--shadow-lg);padding:0.25rem;
-                display:flex;flex-direction:column;gap:0.125rem;font-size:0.8rem;
-            `;
-                menu.innerHTML = `
+                const textButtons = `
                 <button class="btn-secondary" id="textCtxEdit" style="font-size:0.75rem;padding:0.25rem 0.5rem;">✏️ Editar</button>
                 <button class="btn-danger" id="textCtxDel" style="font-size:0.75rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button>
             `;
-                document.body.appendChild(menu);
-
-                menu.style.left = Math.min(e.clientX, window.innerWidth - 140) + 'px';
-                menu.style.top = Math.min(e.clientY, window.innerHeight - 70) + 'px';
-
-                const dismissMenu = () => { menu.remove(); document.removeEventListener('click', dismissMenu); };
-                setTimeout(() => document.addEventListener('click', dismissMenu), 10);
+                const dismissMenu = createContextMenu('textContextMenu', textButtons, e, 140, 70);
 
                 document.getElementById('textCtxEdit').addEventListener('click', () => {
                     dismissMenu();
@@ -4681,7 +4752,7 @@
 
                 // Count ALL selected items
                 const compIndices = new Set();
-                APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(-idx - 1); });
+                APP.selectedWireIndices.forEach(idx => { if (idx < 0) compIndices.add(selIdxToCompIdx(idx)); });
                 if (APP.selectedComponent !== null) compIndices.add(APP.selectedComponent);
                 const wireCount = APP.selectedWireIndices.size > 0
                     ? [...APP.selectedWireIndices].filter(i => i >= 0).length
@@ -4881,7 +4952,7 @@
                     // Terminal central: curva muy suave
                     const gentleOffset = Math.max(dist * 0.04, 4);
                     const midY = (start.y + end.y) / 2;
-                    const blockCenterY = APP.rectStartY + APP.rectH / 2;
+                    const blockCenterY = getClemaCenterY();
                     const gSign = (midY < blockCenterY ? -1 : 1) * (dx < 0 ? -1 : 1);
                     h1x = start.x + dirX * tangentLen + (-dirY) * gentleOffset * gSign;
                     h1y = start.y + dirY * tangentLen + (dirX) * gentleOffset * gSign;
@@ -4905,7 +4976,7 @@
                 const perpX = -dirY;
                 const perpY = dirX;
                 const midY = (start.y + end.y) / 2;
-                const blockCenterY = APP.rectStartY + APP.rectH / 2;
+                const blockCenterY = getClemaCenterY();
                 const sign = (midY < blockCenterY ? -1 : 1) * (dx < 0 ? -1 : 1);
                 const perpOffset = isClemaToClema 
                     ? Math.min(Math.max(dist * 0.6, 60), APP.rectH * 1.5)
@@ -4990,7 +5061,7 @@
             if (labelG) {
                 const ci = +labelG.dataset.componentIndex;
                 const comp = APP.components[ci];
-                const negIdx = -ci - 1;
+                const negIdx = compToSelIdx(ci);
 
                 // Shift+click on a label: toggle component in/out of multi-selection
                 if (e.shiftKey) {
@@ -5000,7 +5071,7 @@
                         APP.selectedWireIndices.add(negIdx);
                         // Also include the currently selectedComponent if there is one
                         if (APP.selectedComponent !== null) {
-                            APP.selectedWireIndices.add(-APP.selectedComponent - 1);
+                            APP.selectedWireIndices.add(compToSelIdx(APP.selectedComponent));
                         }
                     }
                     APP.selectedComponent = null;
@@ -5016,8 +5087,8 @@
                 const currentLabelX = comp.labelX || 0;
                 let defaultY;
                 const dims = getComponentDimensions(comp.type);
-                const isAboveClemas = comp.y < (APP.rectStartY + APP.rectH / 2);
-                const labelFontSize = Math.max(12, APP.b * 0.22);
+                const isAboveClemas = comp.y < getClemaCenterY();
+                const labelFontSize = getLabelFontSize();
                 if (isAboveClemas) {
                     defaultY = -(dims.h / 2 + 12) - (labelFontSize + 4);
                 } else {
@@ -5036,14 +5107,14 @@
                 const comp = APP.components[ci];
 
                 // Check if this component is part of a multi-selection
-                const negIdx = -ci - 1;
+                const negIdx = compToSelIdx(ci);
                 const otherSelected = APP.selectedWireIndices.size > 1 ||
                     (APP.selectedWireIndices.size > 0 && APP.selectedComponent !== null);
 
                 if (otherSelected || APP.selectedWireIndices.size > 1) {
                     // Multi-drag: collect all selected components
                     const allCompIndices = new Set();
-                    APP.selectedWireIndices.forEach(idx => { if (idx < 0) allCompIndices.add(-idx - 1); });
+                    APP.selectedWireIndices.forEach(idx => { if (idx < 0) allCompIndices.add(selIdxToCompIdx(idx)); });
                     if (APP.selectedComponent !== null) allCompIndices.add(APP.selectedComponent);
 
                     // Store deltas for all
@@ -5163,15 +5234,16 @@
                     return;
                 }
 
+                e.preventDefault(); // Prevent default browser drag behavior
+
                 // Clear existing selection
-                APP.selectedWire = null;
-                APP.selectedWireIndices.clear();
-                APP.selectedText = null;
-                APP.selectedTexts.clear();
-                APP.selectedComponent = null;
-                renderWires();
-                renderTexts();
-                renderComponents();
+                clearAllSelections();
+                renderContent();
+
+                // Clean up any orphaned selection box from a previous interrupted attempt
+                if (APP.selectionBox && APP.selectionBox.parentNode) {
+                    APP.selectionBox.remove();
+                }
 
                 APP.selectionStart = { x: c.x, y: c.y };
                 APP.selectionBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -5225,7 +5297,7 @@
                         // Right to Left: Crossing selection (touches)
                         APP.selectionBox.setAttribute('fill', 'rgba(34, 197, 94, 0.1)'); // Greenish
                         APP.selectionBox.setAttribute('stroke', '#22c55e');
-                        APP.selectionBox.setAttribute('stroke-dasharray', ''); // Solid
+                        APP.selectionBox.setAttribute('stroke-dasharray', 'none'); // Solid
                     } else {
                         // Left to Right: Window selection (contains)
                         APP.selectionBox.setAttribute('fill', 'rgba(37, 99, 235, 0.1)'); // Blueish
@@ -5257,13 +5329,7 @@
                         
                         // Prevent dragging onto clema area
                         if (componentOverlapsClema(comp)) {
-                            const rect = getComponentBoundingRect(comp);
-                            const clemaCenterY = APP.rectStartY + APP.rectH / 2;
-                            if (comp.y < clemaCenterY) {
-                                comp.y = APP.rectStartY - (rect.bottom - comp.y) - 5;
-                            } else {
-                                comp.y = APP.rectStartY + APP.rectH + (comp.y - rect.top) + 5;
-                            }
+                            pushOutOfClema(comp);
                         }
                         
                         // Prevent overlap with non-dragged components during drag
@@ -5294,13 +5360,7 @@
 
                     // Prevent dragging onto clema area
                     if (componentOverlapsClema(comp)) {
-                        const rectC = getComponentBoundingRect(comp);
-                        const clemaCenterY = APP.rectStartY + APP.rectH / 2;
-                        if (comp.y < clemaCenterY) {
-                            comp.y = APP.rectStartY - (rectC.bottom - comp.y) - 5;
-                        } else {
-                            comp.y = APP.rectStartY + APP.rectH + (comp.y - rectC.top) + 5;
-                        }
+                        pushOutOfClema(comp);
                     }
 
                     // Prevent overlap with other components during drag
@@ -5311,13 +5371,7 @@
                             comp.y = snapped.y;
                             // Recheck clema overlap after snap
                             if (componentOverlapsClema(comp)) {
-                                const rectS = getComponentBoundingRect(comp);
-                                const cyS = APP.rectStartY + APP.rectH / 2;
-                                if (comp.y < cyS) {
-                                    comp.y = APP.rectStartY - (rectS.bottom - comp.y) - 5;
-                                } else {
-                                    comp.y = APP.rectStartY + APP.rectH + (comp.y - rectS.top) + 5;
-                                }
+                                pushOutOfClema(comp);
                             }
                         }
                     }
@@ -5326,14 +5380,14 @@
                 if (APP._draggingComponents && APP._draggingComponents.length > 1) {
                     APP._draggingComponents.forEach(dc => {
                         if (dc.comp.type === 'transistor' || dc.comp.type === 'commutator') {
-                            const newRotation = dc.comp.y > APP.rectStartY + APP.rectH / 2 ? 180 : 0;
+                            const newRotation = dc.comp.y > getClemaCenterY() ? 180 : 0;
                             if (dc.comp.rotation !== newRotation) dc.comp.rotation = newRotation;
                         }
                     });
                 } else {
                     const comp = APP.components[APP.draggingComponent];
                     if (comp && (comp.type === 'transistor' || comp.type === 'commutator')) {
-                        const newRotation = comp.y > APP.rectStartY + APP.rectH / 2 ? 180 : 0;
+                        const newRotation = comp.y > getClemaCenterY() ? 180 : 0;
                         if (comp.rotation !== newRotation) comp.rotation = newRotation;
                     }
                 }
@@ -5345,16 +5399,7 @@
 
                 allDragged.forEach(dci => {
                     const comp = APP.components[dci];
-                    APP.wires.forEach(w => {
-                        ['start', 'end'].forEach(ep => {
-                            if (w[ep].id && w[ep].id.startsWith(`comp_${dci}_`)) {
-                                const absTerminals = getComponentAbsoluteTerminals(comp);
-                                const tid = w[ep].id.split('_').pop();
-                                const term = absTerminals.find(tm => tm.id === tid);
-                                if (term) { w[ep].x = term.x; w[ep].y = term.y; }
-                            }
-                        });
-                    });
+                    updateComponentWireEndpoints(comp, dci);
                 });
                 renderComponents();
                 renderWires();
@@ -5406,14 +5451,8 @@
                 }
 
                 // Find nearest clema point and show preview
-                let nearestPt = null;
-                let nearestDist = Infinity;
                 const snapDist = 25;
-
-                getConnectionPoints(true).forEach(pt => {
-                    const dist = Math.hypot(pt.x - newX, pt.y - newY);
-                    if (dist < nearestDist) { nearestPt = pt; nearestDist = dist; }
-                });
+                const { point: nearestPt, dist: nearestDist } = findNearestPoint(newX, newY, getConnectionPoints(true));
 
                 // Store for mouseUp
                 APP.dragging._nearestPt = nearestPt;
@@ -5478,15 +5517,7 @@
                 const connectionPoints = getConnectionPoints(true);
 
                 // Check start anchor point
-                let nearestStart = null;
-                let nearestStartDist = Infinity;
-                connectionPoints.forEach(pt => {
-                    const dist = Math.hypot(pt.x - w.start.x, pt.y - w.start.y);
-                    if (dist < nearestStartDist) {
-                        nearestStartDist = dist;
-                        nearestStart = pt;
-                    }
-                });
+                const { point: nearestStart, dist: nearestStartDist } = findNearestPoint(w.start.x, w.start.y, connectionPoints);
 
                 // Apply magnetic attraction to start point
                 if (nearestStart && nearestStartDist < magnetRadius && nearestStartDist > 0) {
@@ -5526,15 +5557,7 @@
                 }
 
                 // Check end anchor point
-                let nearestEnd = null;
-                let nearestEndDist = Infinity;
-                connectionPoints.forEach(pt => {
-                    const dist = Math.hypot(pt.x - w.end.x, pt.y - w.end.y);
-                    if (dist < nearestEndDist) {
-                        nearestEndDist = dist;
-                        nearestEnd = pt;
-                    }
-                });
+                const { point: nearestEnd, dist: nearestEndDist } = findNearestPoint(w.end.x, w.end.y, connectionPoints);
 
                 // Apply magnetic attraction to end point
                 if (nearestEnd && nearestEndDist < magnetRadius && nearestEndDist > 0) {
@@ -5607,15 +5630,7 @@
                         const connectionPoints = getConnectionPoints(true);
 
                         // Check start anchor
-                        let nearestStart = null;
-                        let nearestStartDist = Infinity;
-                        connectionPoints.forEach(pt => {
-                            const dist = Math.hypot(pt.x - w.start.x, pt.y - w.start.y);
-                            if (dist < nearestStartDist) {
-                                nearestStartDist = dist;
-                                nearestStart = pt;
-                            }
-                        });
+                        const { point: nearestStart, dist: nearestStartDist } = findNearestPoint(w.start.x, w.start.y, connectionPoints);
 
                         // Snap start point if within range
                         if (nearestStart && nearestStartDist < magnetRadius) {
@@ -5626,15 +5641,7 @@
                         }
 
                         // Check end anchor
-                        let nearestEnd = null;
-                        let nearestEndDist = Infinity;
-                        connectionPoints.forEach(pt => {
-                            const dist = Math.hypot(pt.x - w.end.x, pt.y - w.end.y);
-                            if (dist < nearestEndDist) {
-                                nearestEndDist = dist;
-                                nearestEnd = pt;
-                            }
-                        });
+                        const { point: nearestEnd, dist: nearestEndDist } = findNearestPoint(w.end.x, w.end.y, connectionPoints);
 
                         // Snap end point if within range
                         if (nearestEnd && nearestEndDist < magnetRadius) {
@@ -5664,7 +5671,7 @@
                         }
 
                         // Adjust concavity: make the curve bulge toward the clema based on wire position
-                        const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+                        const clemaCenterY = getClemaCenterY();
                         const wireMidY = (w.start.y + w.end.y) / 2;
 
                         if (!w.isSine) {
@@ -5682,7 +5689,7 @@
                             // Determine direction: wire concavity should face the clema
                             // If wire midpoint is above clema center → bulge UP
                             // If wire midpoint is below clema center → bulge DOWN
-                            const shouldBulgeUp = wireMidY < clemaCenterY;
+                            const shouldBulgeUp = wireMidY < getClemaCenterY();
 
                             // Apply correct direction
                             const targetH1Y = w.start.y + (shouldBulgeUp ? -minBulge : minBulge);
@@ -5759,18 +5766,17 @@
                     }
                 }
 
+                // Single undo state save for any drag operation that completed
                 saveUndoState();
                 APP.dragging = null;
                 if (APP.overlayGroup) clear(APP.overlayGroup);
                 APP.svg.style.cursor = '';
-            }
-            if (APP.draggingComponent !== null) {
+            } else if (APP.draggingComponent !== null) {
                 saveUndoState();
                 APP.draggingComponent = null;
                 APP.dragComponentOffset = null;
                 APP._draggingComponents = null;
-            }
-            if (APP.draggingLabel !== null) {
+            } else if (APP.draggingLabel !== null) {
                 saveUndoState();
                 APP.draggingLabel = null;
                 APP.dragLabelOffset = null;
@@ -5778,94 +5784,90 @@
 
             // Finish selection box
             if (APP.selectionStart) {
-                const c = coords(e);
-                const sx = APP.selectionStart.x;
-                const sy = APP.selectionStart.y;
-                const selLeft = Math.min(sx, c.x);
-                const selRight = Math.max(sx, c.x);
-                const selTop = Math.min(sy, c.y);
-                const selBottom = Math.max(sy, c.y);
+                try {
+                    const c = coords(e);
+                    const sx = APP.selectionStart.x;
+                    const sy = APP.selectionStart.y;
+                    const selLeft = Math.min(sx, c.x);
+                    const selRight = Math.max(sx, c.x);
+                    const selTop = Math.min(sy, c.y);
+                    const selBottom = Math.max(sy, c.y);
 
-                const leftToRight = sx <= c.x;
+                    const leftToRight = sx <= c.x;
 
-                // Clear previous selection
-                APP.selectedWire = null;
-                APP.selectedWireIndices.clear();
-                APP.selectedText = null;
-                APP.selectedTexts.clear();
-                APP.selectedComponent = null;
+                    // Clear previous selection
+                    clearAllSelections();
 
-                if (leftToRight) {
-                    // Left to right: select objects FULLY CONTAINED
-                    APP.components.forEach((comp, i) => {
-                        const dims = getComponentDimensions(comp.type);
-                        const cLeft = comp.x - dims.w / 2;
-                        const cRight = comp.x + dims.w / 2;
-                        const cTop = comp.y - dims.h / 2;
-                        const cBottom = comp.y + dims.h / 2;
-                        if (cLeft >= selLeft && cRight <= selRight && cTop >= selTop && cBottom <= selBottom) {
-                            APP.selectedWireIndices.add(-i - 1); // Use negative indices for components
+                    if (leftToRight) {
+                        // Left to right: select objects FULLY CONTAINED
+                        APP.components.forEach((comp, i) => {
+                            const dims = getComponentDimensions(comp.type);
+                            const cLeft = comp.x - dims.w / 2;
+                            const cRight = comp.x + dims.w / 2;
+                            const cTop = comp.y - dims.h / 2;
+                            const cBottom = comp.y + dims.h / 2;
+                            if (cLeft >= selLeft && cRight <= selRight && cTop >= selTop && cBottom <= selBottom) {
+                                APP.selectedWireIndices.add(compToSelIdx(i));
+                            }
+                        });
+                    } else {
+                        // Right to left: select objects that TOUCH the selection box
+                        APP.components.forEach((comp, i) => {
+                            const dims = getComponentDimensions(comp.type);
+                            const cLeft = comp.x - dims.w / 2;
+                            const cRight = comp.x + dims.w / 2;
+                            const cTop = comp.y - dims.h / 2;
+                            const cBottom = comp.y + dims.h / 2;
+                            if (!(cRight < selLeft || cLeft > selRight || cBottom < selTop || cTop > selBottom)) {
+                                APP.selectedWireIndices.add(compToSelIdx(i));
+                            }
+                        });
+                    }
+
+                    // Also select wires that are contained (L->R) or touched (R->L)
+                    APP.wires.forEach((w, i) => {
+                        if (leftToRight) {
+                            if (wireIsFullyContainedInRect(w, selLeft, selRight, selTop, selBottom)) {
+                                APP.selectedWireIndices.add(i);
+                            }
+                        } else {
+                            if (wireIntersectsRect(w, selLeft, selRight, selTop, selBottom)) {
+                                APP.selectedWireIndices.add(i);
+                            }
                         }
                     });
-                } else {
-                    // Right to left: select objects that TOUCH the selection box
-                    APP.components.forEach((comp, i) => {
-                        const dims = getComponentDimensions(comp.type);
-                        const cLeft = comp.x - dims.w / 2;
-                        const cRight = comp.x + dims.w / 2;
-                        const cTop = comp.y - dims.h / 2;
-                        const cBottom = comp.y + dims.h / 2;
-                        if (!(cRight < selLeft || cLeft > selRight || cBottom < selTop || cTop > selBottom)) {
-                            APP.selectedWireIndices.add(-i - 1);
+
+                    APP.texts.forEach((txt, i) => {
+                        if (leftToRight) {
+                            if (txt.x >= selLeft && txt.x <= selRight && txt.y >= selTop && txt.y <= selBottom) {
+                                APP.selectedTexts.add(i);
+                            }
+                        } else {
+                            if (!(txt.x < selLeft || txt.x > selRight || txt.y < selTop || txt.y > selBottom)) {
+                                APP.selectedTexts.add(i);
+                            }
                         }
                     });
-                }
 
-                // Also select wires that are contained (L->R) or touched (R->L)
-                APP.wires.forEach((w, i) => {
-                    if (leftToRight) {
-                        if (wireIsFullyContainedInRect(w, selLeft, selRight, selTop, selBottom)) {
-                            APP.selectedWireIndices.add(i);
-                        }
-                    } else {
-                        if (wireIntersectsRect(w, selLeft, selRight, selTop, selBottom)) {
-                            APP.selectedWireIndices.add(i);
-                        }
+                    // Set flag to prevent onClick from clearing this selection
+                    APP.justMadeSelection = true;
+
+                    // Sync primary selection
+                    if (APP.selectedWireIndices.size > 0) {
+                        const first = [...APP.selectedWireIndices].find(idx => idx >= 0);
+                        APP.selectedWire = first !== undefined ? first : null;
                     }
-                });
 
-                APP.texts.forEach((txt, i) => {
-                    if (leftToRight) {
-                        if (txt.x >= selLeft && txt.x <= selRight && txt.y >= selTop && txt.y <= selBottom) {
-                            APP.selectedTexts.add(i);
-                        }
-                    } else {
-                        if (!(txt.x < selLeft || txt.x > selRight || txt.y < selTop || txt.y > selBottom)) {
-                            APP.selectedTexts.add(i);
-                        }
+                    renderContent();
+                    setStatus(`${APP.selectedWireIndices.size} elementos seleccionados`);
+                } finally {
+                    // Always clean up selection box, even if an error occurred above
+                    if (APP.selectionBox) {
+                        if (APP.selectionBox.parentNode) APP.selectionBox.remove();
+                        APP.selectionBox = null;
                     }
-                });
-
-                // Clear selection box
-                if (APP.selectionBox) {
-                    APP.selectionBox.remove();
-                    APP.selectionBox = null;
+                    APP.selectionStart = null;
                 }
-                APP.selectionStart = null;
-
-                // Set flag to prevent onClick from clearing this selection
-                APP.justMadeSelection = true;
-
-                // Sync primary selection
-                if (APP.selectedWireIndices.size > 0) {
-                    const first = [...APP.selectedWireIndices].find(idx => idx >= 0);
-                    APP.selectedWire = first !== undefined ? first : null;
-                }
-
-                renderComponents();
-                renderWires();
-                renderTexts();
-                setStatus(`${APP.selectedWireIndices.size} elementos seleccionados`);
             }
         }
 
@@ -6050,10 +6052,10 @@
 
             // Expand bounds if labels or values exist
             if (comp.label || comp.value) {
-                const labelFontSize = Math.max(12, APP.b * 0.22);
+                const labelFontSize = getLabelFontSize();
                 const gap = labelFontSize + 4;
                 const minPadding = 8;
-                const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+                const clemaCenterY = getClemaCenterY();
                 const isAboveClemas = comp.y < clemaCenterY;
 
                 // Estimar la altura ocupada por los textos (algunos componentes como Arduino tienen 2 líneas)
@@ -6243,21 +6245,7 @@
         // Pregunta al usuario dónde quiere colocar el componente
         function askComponentPosition(type, extraData = {}) {
             if (document.getElementById('positionDialog')) return; // Evitar duplicados
-            const compName = {
-                battery: 'Pila',
-                resistor: 'Resistencia',
-                bulb: 'Bombilla',
-                motor: 'Motor',
-                switch: 'Interruptor',
-                pushbutton: 'Pulsador',
-                commutator: 'Conmutador',
-                led: 'LED',
-                diode: 'Diodo',
-                capacitor: 'Condensador',
-                electrolytic: 'Electrolítico',
-                transistor: 'Transistor',
-                arduino: 'Arduino'
-            }[type] || type;
+            const compName = COMPONENT_NAMES[type] || type;
 
             // Crear diálogo personalizado
             const dialog = document.createElement('div');
@@ -6286,7 +6274,7 @@
             document.body.appendChild(dialog);
 
             // Posición Y según la elección
-            const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+            const clemaCenterY = getClemaCenterY();
             const totalW = APP.N * APP.b;
             const cx = APP.margin + totalW / 2;
 
@@ -6344,30 +6332,8 @@
         function addComponent(type, x, y, extraData = {}) {
             saveUndoState();
 
-            const componentBaseNames = {
-                battery: 'Pila',
-                resistor: 'Resistencia',
-                bulb: 'Bombilla',
-                motor: 'Motor',
-                switch: 'Interruptor',
-                pushbutton: 'Pulsador',
-                commutator: 'Conmutador',
-                led: 'LED',
-                diode: 'Diodo',
-                capacitor: 'Condensador',
-                electrolytic: 'Electrolítico',
-                transistor: 'Transistor',
-                arduino: 'Arduino'
-            };
-
             // Generar etiqueta única por defecto
-            const base = componentBaseNames[type] || type;
-            let count = 1;
-            let uniqueLabel = `${base} ${count}`;
-            while (APP.components.some(c => c.label === uniqueLabel)) {
-                count++;
-                uniqueLabel = `${base} ${count}`;
-            }
+            const uniqueLabel = generateUniqueLabel(type);
 
             // Valores por defecto para componentes técnicos
             const defaults = {
@@ -6382,31 +6348,14 @@
 
             // Arduino auto-incrementing pin value (only if not provided)
             if (type === 'arduino' && !extraData.value) {
-                let maxDPin = 1; // Starts at 1 so next default is 2
-                let dPinsUsed = new Set();
-                APP.components.forEach(c => {
-                    if (c.type === 'arduino' && c.value && c.value.startsWith('D')) {
-                        const num = parseInt(c.value.substring(1));
-                        if (!isNaN(num)) {
-                            dPinsUsed.add(num);
-                        }
-                    }
-                });
-                
-                // Find earliest available pin starting from D2
-                let nextPin = 2;
-                while (dPinsUsed.has(nextPin)) {
-                    nextPin++;
-                }
-                compData.val = `D${nextPin}`;
+                compData.val = getNextArduinoPin();
             }
 
             // Asignar color secuencial pastel para Arduino
             let compColor = '#d1d5db';
             if (type === 'arduino') {
-                const pastelColors = ['#fecaca', '#fef08a', '#bbf7d0', '#bfdbfe', '#e9d5ff', '#fed7aa', '#fbcfe8', '#ccfbf1', '#cbd5e1'];
                 const arduinosCount = APP.components.filter(c => c.type === 'arduino').length;
-                compColor = pastelColors[arduinosCount % pastelColors.length];
+                compColor = ARDUINO_PASTEL_COLORS[arduinosCount % ARDUINO_PASTEL_COLORS.length];
             }
 
             const comp = {
@@ -6424,7 +6373,7 @@
             const { h } = dims;
             // 3-terminal components auto-rotate so center terminal faces clema
             if (type === 'transistor' || type === 'commutator') {
-                comp.rotation = y > APP.rectStartY + APP.rectH / 2 ? 180 : 0;
+                comp.rotation = y > getClemaCenterY() ? 180 : 0;
             }
             // Final validation: ensure it's in a clean, on-canvas position
             if (!componentIsInsideCanvas(comp) || componentOverlapsOthers(comp, -1) || componentOverlapsClema(comp)) {
@@ -6631,7 +6580,7 @@
                 const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 g.classList.add('component-group');
                 // Check selection: either single selectedComponent or in selection set
-                const compSelIndex = -ci - 1;
+                const compSelIndex = compToSelIdx(ci);
                 if (APP.selectedComponent === ci || APP.selectedWireIndices.has(compSelIndex)) g.classList.add('selected');
                 g.dataset.componentIndex = ci;
                 // Main group is ONLY translated to comp.x, comp.y
@@ -6691,10 +6640,10 @@
                     labelG.dataset.componentIndex = ci;
                     labelG.style.cursor = 'move';
 
-                    const clemaCenterY = APP.rectStartY + APP.rectH / 2;
+                    const clemaCenterY = getClemaCenterY();
                     const isAboveClemas = comp.y < clemaCenterY;
                     
-                    const labelFontSize = Math.max(12, APP.b * 0.22);
+                    const labelFontSize = getLabelFontSize();
                     const valueFontSize = labelFontSize * 0.85;
                     const gap = labelFontSize + 4;
                     const minPadding = 10;
@@ -6869,7 +6818,7 @@
 
         function openTextDialogAt(x, y) {
             textPlacementPos = { x, y };
-            document.getElementById('addTextDialog').classList.remove('hidden');
+            openModal('addTextDialog');
             document.getElementById('textContent').value = '';
             document.getElementById('textContent').focus();
         }
@@ -6914,7 +6863,7 @@
                 setStatus('Texto añadido. Arrástrelo para moverlo, doble clic para editar.');
             }
 
-            document.getElementById('addTextDialog').classList.add('hidden');
+            closeModal('addTextDialog');
             document.getElementById('textContent').value = '';
             if (APP.textMode) {
                 APP.textMode = false;
@@ -6937,7 +6886,7 @@
             document.getElementById('textBgColor').value = isTransparent ? '#ffffff' : txt.bgColor;
             document.getElementById('textBgColor').disabled = isTransparent;
 
-            document.getElementById('addTextDialog').classList.remove('hidden');
+            openModal('addTextDialog');
             document.getElementById('textContent').focus();
             document.getElementById('textContent').select();
         }
@@ -6996,16 +6945,7 @@
         // ============================================================
         function saveUndoState() {
             APP.hasUnsavedChanges = true;
-            APP.undoStack.push(JSON.stringify({
-                wires: APP.wires,
-                texts: APP.texts,
-                components: APP.components,
-                N: APP.N,
-                b: APP.b,
-                rectStartY: APP.rectStartY,
-                rectH: APP.rectH,
-                clemaLineAngles: APP._clemaLineAngles ? [...APP._clemaLineAngles] : null
-            }));
+            APP.undoStack.push(serializeState());
             if (APP.undoStack.length > 50) APP.undoStack.shift();
             APP.redoStack = [];
             updateURButtons();
@@ -7020,45 +6960,23 @@
             if (s.rectStartY) APP.rectStartY = s.rectStartY;
             if (s.rectH) APP.rectH = s.rectH;
             if (s.clemaLineAngles) APP._clemaLineAngles = [...s.clemaLineAngles];
-            APP.selectedWire = null; APP.selectedWireIndices.clear();
-            APP.selectedText = null; APP.selectedTexts.clear();
-            APP.selectedComponent = null;
+            clearAllSelections();
             // Re-render everything including clemas (N may have changed)
-            renderClemas();
-            renderConnectionPoints();
-            renderWires(); renderTexts(); renderComponents();
+            renderAll();
             centerView();
             updateURButtons();
         }
 
         function undo() {
             if (!APP.undoStack.length) return;
-            APP.redoStack.push(JSON.stringify({
-                wires: APP.wires,
-                texts: APP.texts,
-                components: APP.components,
-                N: APP.N,
-                b: APP.b,
-                rectStartY: APP.rectStartY,
-                rectH: APP.rectH,
-                clemaLineAngles: APP._clemaLineAngles ? [...APP._clemaLineAngles] : null
-            }));
+            APP.redoStack.push(serializeState());
             _applyUndoRedoState(JSON.parse(APP.undoStack.pop()));
             setStatus('Deshacer');
         }
 
         function redo() {
             if (!APP.redoStack.length) return;
-            APP.undoStack.push(JSON.stringify({
-                wires: APP.wires,
-                texts: APP.texts,
-                components: APP.components,
-                N: APP.N,
-                b: APP.b,
-                rectStartY: APP.rectStartY,
-                rectH: APP.rectH,
-                clemaLineAngles: APP._clemaLineAngles ? [...APP._clemaLineAngles] : null
-            }));
+            APP.undoStack.push(serializeState());
             _applyUndoRedoState(JSON.parse(APP.redoStack.pop()));
             setStatus('Rehacer');
         }
@@ -7072,7 +6990,8 @@
             if (!APP.wires.length) return;
             if (!confirm('¿Eliminar todos los cables?')) return;
             saveUndoState();
-            APP.wires = []; APP.selectedWire = null; APP.selectedWireIndices.clear();
+            APP.wires = [];
+            clearAllSelections();
             renderWires(); setStatus('Cables eliminados');
         }
 
@@ -7089,12 +7008,9 @@
             });
             
             APP.components = [];
-            APP.selectedComponent = null;
-            APP.selectedWire = null;
-            APP.selectedWireIndices.clear();
+            clearAllSelections();
             
-            renderComponents();
-            renderWires();
+            renderContent();
             setStatus('Componentes y cables asociados eliminados');
         }
 
@@ -7102,7 +7018,8 @@
             if (!APP.texts.length) return;
             if (!confirm('¿Eliminar todos los textos?')) return;
             saveUndoState();
-            APP.texts = []; APP.selectedText = null; APP.selectedTexts.clear();
+            APP.texts = [];
+            clearAllSelections();
             renderTexts(); setStatus('Textos eliminados');
         }
 
@@ -7416,8 +7333,7 @@
                 document.getElementById('projectName').value = name;
             }
 
-            APP.selectedWire = null; APP.selectedWireIndices.clear(); APP.selectedText = null; APP.selectedTexts.clear();
-            APP.selectedComponent = null;
+            clearAllSelections();
             initSvg(); renderClemas(); renderConnectionPoints(); renderComponents(); renderWires(); renderTexts();
             setStatus(`Importado: ${APP.wires.length} cables, ${APP.texts.length} textos, ${APP.components.length} componentes`);
         }
@@ -7450,7 +7366,7 @@
             if (wires.length) {
                 saveUndoState();
                 APP.wires = wires; APP.texts = [];
-                APP.selectedWire = null; APP.selectedWireIndices.clear(); APP.selectedText = null; APP.selectedTexts.clear();
+                clearAllSelections();
                 renderWires(); renderTexts();
                 setStatus(`SVG importado: ${wires.length} cables`);
             }
@@ -7465,8 +7381,7 @@
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const token = ev.target.result.trim();
-                document.getElementById('ghToken').value = token;
-                document.getElementById('ghLoadToken').value = token;
+                setGithubToken(token);
                 // Auto-save to localStorage
                 try { localStorage.setItem(GH_TOKEN_KEY, token); } catch (e) { /* ignore */ }
                 setStatus('Token de GitHub cargado desde archivo y guardado');
@@ -7477,13 +7392,12 @@
 
         // Save/load token from localStorage
         function saveTokenToLocalStorage() {
-            const token = document.getElementById('ghToken').value.trim() || document.getElementById('ghLoadToken').value.trim();
+            const token = getGithubToken();
             if (!token) { alert('No hay token para guardar'); return; }
             try {
                 localStorage.setItem(GH_TOKEN_KEY, token);
                 // Sync both fields
-                document.getElementById('ghToken').value = token;
-                document.getElementById('ghLoadToken').value = token;
+                setGithubToken(token);
                 setStatus('Token de GitHub guardado en el navegador');
                 alert('Token guardado correctamente en el navegador.');
             } catch (e) {
@@ -7494,8 +7408,7 @@
         function loadTokenFromLocalStorage() {
             const token = localStorage.getItem(GH_TOKEN_KEY);
             if (token) {
-                document.getElementById('ghToken').value = token;
-                document.getElementById('ghLoadToken').value = token;
+                setGithubToken(token);
                 return true;
             }
             return false;
@@ -7506,7 +7419,7 @@
             if (loadTokenFromLocalStorage()) return;
             // Fall back to the other dialog's token if available
             const loadToken = document.getElementById('ghLoadToken').value;
-            if (loadToken) document.getElementById('ghToken').value = loadToken;
+            if (loadToken) setGithubToken(loadToken);
             const saveToken = document.getElementById('ghToken').value;
             if (saveToken) document.getElementById('ghLoadToken').value = saveToken;
         }
@@ -7531,10 +7444,10 @@
         }
 
         async function searchGithubFile() {
-            const token = document.getElementById('ghToken').value.trim();
+            const token = getGithubToken();
             const filename = document.getElementById('ghFilename').value.trim() || 'clemas_design.json';
             if (!token) return;
-            const authHeader = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+            const authHeader = getAuthHeader(token);
 
             const listDiv = document.getElementById('ghSaveFileList');
             listDiv.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted);">Buscando...</div>';
@@ -7579,7 +7492,7 @@
         }
 
         async function saveToGithub(asNew) {
-            const token = document.getElementById('ghToken').value.trim();
+            const token = getGithubToken();
             const filename = document.getElementById('ghFilename').value.trim() || ((APP.projectName || 'Mi Circuito').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ_ -]/g, '').trim() || 'clemas_design') + '.json';
             const desc = filename.replace(/\.json$/i, '');
             if (!token) { alert('Introduzca su token de GitHub'); return; }
@@ -7598,7 +7511,7 @@
                 exportDate: new Date().toISOString()
             };
 
-            const authHeader = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+            const authHeader = getAuthHeader(token);
             try {
                 let url, method;
                 if (asNew || !ghExistingGistId) {
@@ -7623,7 +7536,7 @@
                 // Auto-save token on successful save
                 try { localStorage.setItem(GH_TOKEN_KEY, token); } catch (e) { /* ignore */ }
 
-                document.getElementById('githubSaveDialog').classList.add('hidden');
+                closeModal('githubSaveDialog');
                 markAsSaved();
 
                 // Sync project name with the actual saved filename (strip .json extension)
@@ -7644,9 +7557,9 @@
         }
 
         async function loadFileListFromGithub() {
-            const token = document.getElementById('ghLoadToken').value.trim();
+            const token = getGithubToken();
             if (!token) { alert('Introduzca su token'); return; }
-            const authHeader = token.startsWith('github_pat_') ? `Bearer ${token}` : `token ${token}`;
+            const authHeader = getAuthHeader(token);
             try {
                 const res = await fetch('https://api.github.com/gists', {
                     headers: { 'Authorization': authHeader, 'Accept': 'application/vnd.github.v3+json' }
@@ -7798,7 +7711,7 @@
                                 }
                                 if (content) {
                                     importJson(JSON.parse(content), jsonFile.filename);
-                                    document.getElementById('githubLoadDialog').classList.add('hidden');
+                                    closeModal('githubLoadDialog');
                                 } else { alert('Sin contenido JSON válido'); }
                             } else { alert('No se encontró un archivo Clemas válido en este gist'); }
                         } catch (err) { alert('Error: ' + err.message); }
@@ -8011,20 +7924,9 @@
                 doc.line(40, currentY - 5, 170, currentY - 5);
             }
 
-            // Nombres de componentes en español
-            const componentNames = {
-                battery: 'Pila',
-                resistor: 'Resistencia',
-                bulb: 'Bombilla',
-                motor: 'Motor',
-                switch: 'Interruptor',
-                pushbutton: 'Pulsador',
-                commutator: 'Conmutador',
-                led: 'LED',
-                diode: 'Diodo',
-                capacitor: 'Condensador',
+            // Nombres de componentes en español (extendidos para tutorial PDF)
+            const componentNames = { ...COMPONENT_NAMES,
                 electrolytic: 'Condensador electrolítico',
-                transistor: 'Transistor',
                 arduino: 'ARDUINO'
             };
 
