@@ -1880,8 +1880,27 @@
         }
 
         // Modal helpers
+        // Single source of truth for modal element IDs. Consumed by
+        // isAnyModalOpen(), the Escape handler, and the backdrop click handler.
+        const MODAL_IDS = [
+            'githubSaveDialog', 'githubLoadDialog', 'addTextDialog',
+            'newProjectDialog', 'initDialog', 'positionDialog',
+            'editArduinoDialog', 'editComponentDialog',
+            'compContextMenu', 'textContextMenu'
+        ];
+
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Close modal when user clicks the backdrop (the .modal-overlay element
+        // itself, not a descendant of the inner .modal content). One delegated
+        // listener handles all modals uniformly.
+        document.addEventListener('click', (e) => {
+            const t = e.target;
+            if (t && t.classList && t.classList.contains('modal-overlay')) {
+                t.classList.add('hidden');
+            }
+        });
 
         // State serialization helper for undo/redo
         function serializeState() {
@@ -1893,8 +1912,56 @@
                 b: APP.b,
                 rectStartY: APP.rectStartY,
                 rectH: APP.rectH,
+                canvasBgColor: APP.canvasBgColor,
+                canvasWidthScale: APP.canvasWidthScale,
+                canvasHeightScale: APP.canvasHeightScale,
+                projectName: APP.projectName,
+                selectedColor: APP.selectedColor,
+                selectedStrokeWidth: APP.selectedStrokeWidth,
+                clemaStrokeColor: APP.clemaStrokeColor,
+                clemaStrokeWidth: APP.clemaStrokeWidth,
+                clemaFillColor: APP.clemaFillColor,
+                clemaCircleColor: APP.clemaCircleColor,
                 clemaLineAngles: APP._clemaLineAngles ? [...APP._clemaLineAngles] : null
             });
+        }
+
+        // Sync the sidebar/UI controls with the current APP state values
+        // (used after undo/redo so the visible pickers match the restored data).
+        function syncStylingControlsToState() {
+            const customColor = document.getElementById('customColor');
+            if (customColor) customColor.value = APP.selectedColor;
+            const sidebarStroke = document.getElementById('sidebarStrokeWidth');
+            if (sidebarStroke) sidebarStroke.value = APP.selectedStrokeWidth;
+            const sidebarStrokeVal = document.getElementById('sidebarStrokeValue');
+            if (sidebarStrokeVal) sidebarStrokeVal.textContent = APP.selectedStrokeWidth;
+            const clemaStroke = document.getElementById('clemaStrokeColorPicker');
+            if (clemaStroke) clemaStroke.value = APP.clemaStrokeColor;
+            const clemaFill = document.getElementById('clemaFillColorPicker');
+            if (clemaFill) clemaFill.value = APP.clemaFillColor;
+            const clemaCircle = document.getElementById('clemaCircleColorPicker');
+            if (clemaCircle) clemaCircle.value = APP.clemaCircleColor;
+            const clemaStrokeW = document.getElementById('clemaStrokeWidth');
+            if (clemaStrokeW) clemaStrokeW.value = APP.clemaStrokeWidth;
+            const clemaStrokeVal = document.getElementById('clemaStrokeValue');
+            if (clemaStrokeVal) clemaStrokeVal.textContent = APP.clemaStrokeWidth;
+        }
+
+        // Reapply the canvas dimensions/background and sync the sidebar UI to the
+        // current APP state. Shared by undo/redo and project import so both paths
+        // stay in sync.
+        //
+        // Order matters: this helper sets the SVG background then calls
+        // updateCanvasSize(). Call sites (undo/redo, importJson) MUST call
+        // centerView() AFTER this helper if they want a centered viewBox,
+        // because updateCanvasSize() may re-derive the viewBox from the
+        // current canvasWidthScale/canvasHeightScale.
+        //
+        // Must be declared after syncStylingControlsToState() (defined just above).
+        function reapplyCanvasAndUI() {
+            syncStylingControlsToState();
+            if (APP.svg) APP.svg.style.backgroundColor = APP.canvasBgColor;
+            if (typeof updateCanvasSize === 'function') updateCanvasSize();
         }
 
         // ============================================================
@@ -2448,13 +2515,8 @@
         function isAnyModalOpen() {
             // Also check if project name input has focus (to prevent shortcut interference)
             if (document.activeElement && document.activeElement.id === 'projectName') return true;
-            // Check for various dialogs and modals
-            const modals = [
-                'githubSaveDialog', 'githubLoadDialog', 'addTextDialog', 
-                'newProjectDialog', 'initDialog', 'positionDialog', 
-                'editArduinoDialog', 'editComponentDialog', 'compContextMenu', 'textContextMenu'
-            ];
-            return modals.some(id => {
+            // Check for various dialogs and modals (single source of truth: MODAL_IDS)
+            return MODAL_IDS.some(id => {
                 const el = document.getElementById(id);
                 if (!el) return false;
                 if (el.classList.contains('hidden')) return false;
@@ -2579,6 +2641,19 @@
             // Escape key handler
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
+                    // Close any open modal/dialog first (documented at line 1568).
+                    if (isAnyModalOpen()) {
+                        // Close the topmost visible modal (last in MODAL_IDS order)
+                        for (let i = MODAL_IDS.length - 1; i >= 0; i--) {
+                            const el = document.getElementById(MODAL_IDS[i]);
+                            if (el && !el.classList.contains('hidden')) {
+                                el.classList.add('hidden');
+                                setStatus('Diálogo cerrado');
+                                e.preventDefault();
+                                return;
+                            }
+                        }
+                    }
                     if (APP.isDrawing) {
                         APP.isDrawing = false;
                         APP.drawingStart = null;
@@ -3529,7 +3604,9 @@
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
             const factor = 1 + delta;
 
-            if (!APP._zoomScale) APP._zoomScale = 1;
+            // Use a nullish check (== null) not a falsy check (!...), so explicit
+            // 0/NaN values aren't silently clobbered to 1 on the next wheel event.
+            if (APP._zoomScale == null) APP._zoomScale = 1;
             const newZoom = Math.max(0.2, Math.min(8, APP._zoomScale * factor));
             APP._zoomScale = newZoom;
 
@@ -4073,11 +4150,6 @@
                         return distA - distB;
                     });
                     terminals = [terminals[0]]; // Nos quedamos solo con el más cercano
-
-                    // Si CUALQUIER terminal de este Arduino ya tiene cable (independientemente
-                    // de cuál sea), se omite el componente completo para no añadir uno nuevo.
-                    const compPrefix = `comp_${ci}_`;
-                    if ([...wiredTerminalIds].some(id => id.startsWith(compPrefix))) return;
                 }
 
                 const wireColor = palette[idx % palette.length];
@@ -5126,7 +5198,13 @@
                     APP.draggingComponent = ci;
                     APP.dragComponentOffset = { x: c.x - comp.x, y: c.y - comp.y };
                 } else {
-                    // Single drag
+                    // Single drag: make the dragged component the new exclusive selection.
+                    APP.selectedWire = null;
+                    APP.selectedWireIndices.clear();
+                    APP.selectedText = null;
+                    APP.selectedTexts.clear();
+                    APP.selectedComponent = ci;
+                    renderComponents();
                     APP.draggingComponent = ci;
                     APP.dragComponentOffset = { x: c.x - comp.x, y: c.y - comp.y };
                     APP._draggingComponents = null;
@@ -6960,9 +7038,28 @@
             if (s.rectStartY) APP.rectStartY = s.rectStartY;
             if (s.rectH) APP.rectH = s.rectH;
             if (s.clemaLineAngles) APP._clemaLineAngles = [...s.clemaLineAngles];
+            // Canvas settings (fall back to current values if state pre-dates the field)
+            if (s.canvasBgColor !== undefined) APP.canvasBgColor = s.canvasBgColor;
+            if (s.canvasWidthScale !== undefined) APP.canvasWidthScale = s.canvasWidthScale;
+            if (s.canvasHeightScale !== undefined) APP.canvasHeightScale = s.canvasHeightScale;
+            if (s.projectName !== undefined) {
+                APP.projectName = s.projectName;
+                const nameInput = document.getElementById('projectName');
+                if (nameInput) nameInput.value = s.projectName;
+            }
+            // Wire styling
+            if (s.selectedColor !== undefined) APP.selectedColor = s.selectedColor;
+            if (s.selectedStrokeWidth !== undefined) APP.selectedStrokeWidth = s.selectedStrokeWidth;
+            // Clema styling
+            if (s.clemaStrokeColor !== undefined) APP.clemaStrokeColor = s.clemaStrokeColor;
+            if (s.clemaStrokeWidth !== undefined) APP.clemaStrokeWidth = s.clemaStrokeWidth;
+            if (s.clemaFillColor !== undefined) APP.clemaFillColor = s.clemaFillColor;
+            if (s.clemaCircleColor !== undefined) APP.clemaCircleColor = s.clemaCircleColor;
+            // Sync UI controls and canvas size/bg with the restored state
             clearAllSelections();
             // Re-render everything including clemas (N may have changed)
             renderAll();
+            reapplyCanvasAndUI();
             centerView();
             updateURButtons();
         }
@@ -7030,7 +7127,30 @@
         async function convertImagesToBase64(cloned) {
             // Wait for cache if not ready yet
             if (!APP._pngCacheReady) {
-                await new Promise(r => { const check = () => { if (APP._pngCacheReady) r(); else setTimeout(check, 50); }; check(); });
+                // Bounded wait: if preloadPngs never sets the flag (e.g. script
+                // error, missing __PNG_CACHE__, network failure), cap the wait
+                // at 5s so exports don't hang forever. We also track and clear
+                // the pending timer to avoid a memory leak from the recursive
+                // setTimeout chain continuing to fire after the promise resolves.
+                await new Promise(r => {
+                    const start = Date.now();
+                    let timer = null;
+                    const finish = (timedOut) => {
+                        if (timer) { clearTimeout(timer); timer = null; }
+                        if (timedOut) {
+                            console.warn('[export] PNG cache never became ready, proceeding without it');
+                            setStatus('Exportando sin imágenes (caché no disponible) — recargue la página');
+                        }
+                        r();
+                    };
+                    const check = () => {
+                        if (timer) clearTimeout(timer);
+                        if (APP._pngCacheReady) return finish(false);
+                        if (Date.now() - start > 5000) return finish(true);
+                        timer = setTimeout(check, 50);
+                    };
+                    check();
+                });
             }
 
             cloned.querySelectorAll('image').forEach((imgEl) => {
@@ -7335,6 +7455,8 @@
 
             clearAllSelections();
             initSvg(); renderClemas(); renderConnectionPoints(); renderComponents(); renderWires(); renderTexts();
+            reapplyCanvasAndUI();
+            centerView();
             setStatus(`Importado: ${APP.wires.length} cables, ${APP.texts.length} textos, ${APP.components.length} componentes`);
         }
 
@@ -7533,8 +7655,10 @@
                 }
                 const result = await res.json();
 
-                // Auto-save token on successful save
-                try { localStorage.setItem(GH_TOKEN_KEY, token); } catch (e) { /* ignore */ }
+                // Auto-save token on successful save (warn on quota/disabled so the user
+                // knows the token will need to be re-entered next session).
+                try { localStorage.setItem(GH_TOKEN_KEY, token); }
+                catch (e) { console.warn('No se pudo guardar el token en localStorage:', e); }
 
                 closeModal('githubSaveDialog');
                 markAsSaved();
@@ -7880,6 +8004,10 @@
                 }
             }
 
+            if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+                setStatus('Error: la librería jsPDF no está disponible. Verifique su conexión a Internet y recargue la página.');
+                return;
+            }
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
