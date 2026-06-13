@@ -3,7 +3,7 @@
    Cache-first strategy with network fallback for offline support
    ============================================================ */
 
-var CACHE_NAME = 'clemas-v2-cache-v2.9';
+var CACHE_NAME = 'clemas-v2-cache-v2.16';
 
 /* Files to cache for offline use */
 var ASSETS_TO_CACHE = [
@@ -59,9 +59,9 @@ self.addEventListener('fetch', function(event) {
     /* Skip non-GET requests */
     if (request.method !== 'GET') return;
 
-    /* Skip GitHub API, token endpoints, and external auth URLs */
+    /* Skip GitHub API and any request whose path contains /token endpoints */
     if (url.hostname === 'api.github.com') return;
-    if (url.href.indexOf('token') !== -1) return;
+    if (url.pathname.toLowerCase().indexOf('/token') !== -1) return;
 
     event.respondWith(
         caches.match(request).then(function(cachedResponse) {
@@ -83,9 +83,9 @@ self.addEventListener('fetch', function(event) {
 
                 return networkResponse;
             }).catch(function() {
-                /* Offline - return fallback for HTML pages */
+                /* Offline - return cached index.html for HTML navigations */
                 if (request.headers.get('Accept').indexOf('text/html') !== -1) {
-                    return caches.match('./ClemasV2_corregido.html');
+                    return caches.match('./index.html');
                 }
             });
         })
